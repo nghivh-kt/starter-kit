@@ -1,0 +1,12 @@
+<form [formGroup]="categoryForm" class="flex flex-col gap-3">
+    <app-input label="ID" formControlName="id"></app-input>    
+
+    <app-input label="Tên Danh mục" formControlName="name"></app-input>
+
+    <app-input label="Diễn giải" formControlName="description"></app-input>
+
+    <div class="flex flex-row justify-end gap-3">
+        <app-button variant="primary" (click)="onSave()">{{loading() ? 'Saving...' : (isEditMode() ? 'Update' : 'Create')}}</app-button>
+        <app-button variant="outline" (click)="onCancel()">Cancel</app-button>
+    </div>
+</form>
