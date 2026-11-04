@@ -1,0 +1,76 @@
+# ==============================================================================
+# GENERAL / OS / IDEs (Áp dụng cho toàn bộ dự án)
+# ==============================================================================
+# Windows specific
+[Tt]humbs.db
+[Dd]esktop.ini
+
+# macOS specific
+.DS_Store
+
+# Visual Studio (Thư mục ẩn .vs chứa config local của user)
+.vs/
+*.user
+*.userosscache
+*.sln.docstates
+*.suo
+
+# Visual Studio Code
+.vscode/
+
+# ==============================================================================
+# .NET CORE / ASP.NET 10 (Thư mục API)
+# ==============================================================================
+# Build results
+[Bb]in/
+[Oo]bj/
+
+# User-specific files
+*.rsuser
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# User-specific configurations (Tùy chọn: bỏ comment nếu muốn ignore file dev config)
+# appsettings.Development.json
+appsettings.Local.json
+
+# User secrets (Bảo mật)
+secrets.json
+
+# Logs
+*.log
+logs/
+
+# ==============================================================================
+# ANGULAR / NODEJS (Thư mục Client)
+# ==============================================================================
+# Dependencies (Rất quan trọng: không bao giờ commit cái này)
+node_modules/
+
+# Build output (Thư mục build production)
+/dist
+/out-tsc
+
+# Angular cache (Angular 13+ tạo ra thư mục này)
+.angular/
+.sass-cache/
+
+# IDEs specific to Frontend
+.idea/
+
+# Logs
+npm-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Testing
+coverage/
+
+# Environment files (Nếu bạn dùng file .env để chứa key bí mật)
+.env
+.env.local
+
+# Editor config (Tùy chọn, thường thì nên giữ lại nhưng nếu conflict thì ignore)
+# .editorconfig

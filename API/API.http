@@ -1,0 +1,155 @@
+# Gọi thử API ngay trong IDE:
+# - Visual Studio 2022 (17.12+): mở file, bấm "Send request" phía trên mỗi request
+# - VS Code: cài extension "REST Client" (humao.rest-client)
+#
+# Chạy request "login" trước: các request sau tự lấy access token từ kết quả của nó.
+# Refresh token nằm trong cookie HttpOnly, công cụ tự gửi kèm cho /api/auth/*.
+#
+# Điền @adminPassword bằng giá trị bạn đã đặt cho Seed:AdminPassword (không commit mật khẩu thật).
+
+@baseUrl = http://localhost:5157
+@adminPassword = <mật khẩu admin>
+@token = {{login.response.body.$.accessToken}}
+
+### ===================================================================
+### HEALTH CHECK (không cần đăng nhập)
+### ===================================================================
+
+GET {{baseUrl}}/health/ready
+
+### ===================================================================
+### AUTH
+### ===================================================================
+
+# @name login
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "userName": "admin",
+  "password": "{{adminPassword}}"
+}
+
+###
+
+GET {{baseUrl}}/api/auth/me
+Authorization: Bearer {{token}}
+
+###
+
+# Đổi refresh token (cookie) lấy access token mới. Sau khi refresh, chạy lại "login" nếu cần token mới cho các request khác
+POST {{baseUrl}}/api/auth/refresh
+
+###
+
+# Đổi mật khẩu xong, mọi phiên bị thu hồi -> phải đăng nhập lại
+POST {{baseUrl}}/api/auth/change-password
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "currentPassword": "{{adminPassword}}",
+  "newPassword": "NewPassword@123"
+}
+
+###
+
+POST {{baseUrl}}/api/auth/logout
+
+###
+
+POST {{baseUrl}}/api/auth/logout-all
+Authorization: Bearer {{token}}
+
+### ===================================================================
+### CATEGORIES (module CRUD mẫu: xem cho mọi user, thêm/sửa/xoá chỉ Admin)
+### ===================================================================
+
+GET {{baseUrl}}/api/categories?search=thử&page=1&pageSize=20&sortBy=name&desc=false
+Authorization: Bearer {{token}}
+
+###
+
+# @name createCategory
+POST {{baseUrl}}/api/categories
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "Danh mục thử",
+  "description": "Tạo từ API.http",
+  "isActive": true
+}
+
+###
+
+GET {{baseUrl}}/api/categories/{{createCategory.response.body.$.id}}
+Authorization: Bearer {{token}}
+
+###
+
+PUT {{baseUrl}}/api/categories/{{createCategory.response.body.$.id}}
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "Danh mục thử (đã sửa)",
+  "description": "Cập nhật từ API.http",
+  "isActive": true
+}
+
+###
+
+# Xoá mềm: bản ghi vẫn còn trong DB (DeletedAt), GET sau đó trả 404
+DELETE {{baseUrl}}/api/categories/{{createCategory.response.body.$.id}}
+Authorization: Bearer {{token}}
+
+### ===================================================================
+### USERS (chỉ Admin)
+### ===================================================================
+
+GET {{baseUrl}}/api/users?search=&role=&page=1&pageSize=20
+Authorization: Bearer {{token}}
+
+###
+
+GET {{baseUrl}}/api/users/1
+Authorization: Bearer {{token}}
+
+###
+
+# @name createUser
+POST {{baseUrl}}/api/users
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "userName": "nguyenvana",
+  "fullName": "Nguyễn Văn A",
+  "password": "Password@123",
+  "email": "nguyenvana@example.com",
+  "role": "User"
+}
+
+###
+
+# isActive = false: khoá tài khoản và thu hồi mọi phiên của user đó
+PUT {{baseUrl}}/api/users/{{createUser.response.body.$.id}}
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "fullName": "Nguyễn Văn A",
+  "role": "User",
+  "isActive": true
+}
+
+###
+
+PUT {{baseUrl}}/api/users/{{createUser.response.body.$.id}}/reset-password
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "newPassword": "ResetPassword@123"
+}

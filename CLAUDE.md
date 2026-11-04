@@ -1,0 +1,61 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+ASP.NET Core Web API starter kit (.NET 10, SQL Server) with a single project, `API/`. The README (in Vietnamese) is the authoritative reference for conventions, the error format, and the auth flow. This file summarizes what matters when changing code. User-facing text (validation messages, exception `detail`, code comments) is written in Vietnamese; keep it that way.
+
+## Commands
+
+Run these from `API/`:
+
+```bash
+dotnet tool restore                       # installs the pinned dotnet-ef (10.0.14)
+dotnet build
+dotnet run --launch-profile http          # http://localhost:5157/swagger, /health/ready
+```
+
+Secrets (the connection string, `Seed:AdminPassword`, and `JwtSettings:SecretKey`, which must be at least 32 bytes) live in user-secrets. User-secrets load only in the Development environment, so EF commands need that environment set:
+
+```bash
+# PowerShell: $env:ASPNETCORE_ENVIRONMENT="Development"
+ASPNETCORE_ENVIRONMENT=Development dotnet ef migrations add AddXxx -o Data/Migrations
+ASPNETCORE_ENVIRONMENT=Development dotnet ef database update
+dotnet ef migrations script --idempotent  # for production; the app never auto-migrates
+```
+
+Tests live in `API.Tests` (xUnit, `WebApplicationFactory`, real SQL Server) and run with `dotnet test` from the repo root. Set `TEST_SQL_CONNECTION` (no Initial Catalog) to use an existing server; otherwise Testcontainers starts SQL Server and needs Docker in Linux containers mode. Stop any running `API.exe` first, because it locks the build output. There is no CI yet. `API/API.http` holds manual request samples. No password is seeded by migrations: `Startup/AdminSeedConfiguration.cs` creates user `admin` at startup when `Users` is empty and migrations are applied, using `Seed:AdminPassword`.
+
+## Architecture
+
+- **Startup**: `Program.cs` only chains extension methods. Each concern lives in its own file under `Startup/` or `Common/Security/`. `PipelineConfiguration.cs` sets the middleware order, and that order is deliberate: ForwardedHeaders → request logging → exception handler/status code pages → CORS → rate limiter → authN → authZ. Options classes use `ValidateOnStart`, so invalid configuration fails at startup.
+- **Layering**: `Controllers → Services → Data → Models`. Any layer may use `Common`. Services take `IUnitOfWork`, which exposes `Repository<T>()` for EF and `.Dapper` for raw SQL and stored procedures.
+- **EF + Dapper share one connection and transaction**: `DapperDbContext` borrows `EFDbContext`'s connection and its current transaction. `IUnitOfWork.ExecuteInTransactionAsync` runs inside the EF execution strategy, joins any outer transaction instead of opening a nested one, and calls `SaveChangesAsync` before commit. Never begin, commit, or roll back a transaction on the Dapper side.
+- **`EFDbContext.SaveChangesAsync` is where the cross-cutting behavior happens**, for entities that inherit `AuditableEntity`:
+  - It sets `CreatedAt`/`UpdatedAt`.
+  - It turns `Repository.Delete(entity)` into a soft delete (`IsActive = false`, `DeletedAt = now`). Use `.IgnoreQueryFilters()` to see deleted rows; a global query filter then hides rows where `DeletedAt != null`.
+  - It writes `AuditLogs` rows with old and new values, using `IUserContext` for user and IP. Sensitive columns such as `PasswordHash` are logged by name only.
+  - Writes made through Dapper or `ExecuteUpdate/ExecuteDeleteAsync` bypass all of this.
+- **DateTime**: a value converter (EF) and `UtcDateTimeTypeHandler` (Dapper) mark every value read from the database as UTC. Get the current time from the injected `TimeProvider` (`_timeProvider.GetUtcNow().UtcDateTime`), never from `DateTime.UtcNow`/`Now`.
+- **Errors**: services throw `AppException` subclasses (`Common/Exceptions/AppExceptions.cs`). Controllers do not return `BadRequest`/`NotFound` themselves. `GlobalExceptionHandler` maps these exceptions to Problem Details with a `code` from `ErrorCodes.cs`. It maps DB unique/FK/concurrency errors to 409 (from EF and from Dapper), and every other exception to a 500 with the message hidden.
+- **Validation**: FluentValidation runs through `FluentValidationFilter`. The implicit `[Required]` is disabled, so every required string needs `NotEmpty()`. Validators check format only. Checks that need the database (duplicates, existence) belong in the service.
+- **Authorization**: a FallbackPolicy requires authentication on every endpoint. Use `[AllowAnonymous]` to open an endpoint and `[Authorize(Roles = Roles.Admin)]` to restrict one. Refresh tokens sit in an HttpOnly cookie scoped to `/api/auth` and are rotated on each refresh. Reusing a token more than 30 seconds after rotation revokes every session for that user.
+- **Mapping**: Mapster maps properties with matching names automatically. Put special cases in `Common/Mappings/MappingConfig.cs`.
+
+## Adding a module
+
+Copy the Category vertical slice:
+
+1. Entity inheriting `AuditableEntity`
+2. `Data/Configurations/*Configuration.cs`
+3. A `DbSet` in `EFDbContext`
+4. DTOs named `XxxCreateRequest`/`XxxUpdateRequest`/`XxxQueryRequest` (inheriting `PagedListQueryBase`)/`XxxResponse`
+5. Validators
+6. Service interface and implementation
+7. Controller
+8. `AddScoped` registration in `Startup/ApplicationServicesConfiguration.cs`
+9. A migration
+
+Patterns to follow:
+- **Dynamic sorting** must whitelist columns; see `SortColumns` in `CategoryService`. `QueryableExtensions.ApplySorting` appends `Id` as a tiebreaker so paging stays stable.
+- **Updates**: load the entity with `Query(asNoTracking: false)`, change its properties, then call `SaveChangesAsync`. No `Update()` call is needed.
+- **`PUT`** returns 200 with the updated record.
