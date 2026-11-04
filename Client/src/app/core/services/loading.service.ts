@@ -6,7 +6,7 @@ import { Injectable, signal } from '@angular/core';
 export class LoadingService {
   // Dùng Signal để UI tự cập nhật
   isLoading = signal(false);
-  
+
   private requestCount = 0;
 
   show() {
@@ -20,5 +20,5 @@ export class LoadingService {
       this.requestCount = 0;
       this.isLoading.set(false);
     }
-  }  
+  }
 }

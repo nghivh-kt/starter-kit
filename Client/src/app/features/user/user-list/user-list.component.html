@@ -1,27 +1,28 @@
 <div class="flex flex-col h-full bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-    <div class="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
-        <h1 class="text-xl font-bold text-gray-900 tracking-tight">Quản lý Người dùng</h1>
-        <app-button variant="primary" (click)="onCreate()">+ Add New</app-button>
-    </div>
+  <div class="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
+    <h1 class="text-xl font-bold text-gray-900 tracking-tight">Quản lý Người dùng</h1>
+    <app-button variant="primary" (click)="onCreate()">+ Add New</app-button>
+  </div>
 
-    <app-table [columns]="columns()" [data]="filterdUsers()" [loading]="isLoading()"
-        [searchable]="true" (search)="onSearch($event)"
-        ></app-table>    
+  <app-table
+    [columns]="columns()"
+    [data]="filterdUsers()"
+    [loading]="isLoading()"
+    [searchable]="true"
+    (search)="onSearch($event)"
+  />
 </div>
 
 <ng-template #actionTemplate let-user>
-    <div class="flex gap-2" (click)="$event.stopPropagation()">
-        <app-button variant="primary" (click)="onEdit(user)">Edit</app-button>
-        <app-button variant="danger" (click)="onDelete(user)">Delete</app-button>
-    </div>
+  <div class="flex gap-2" (click)="$event.stopPropagation()">
+    <app-button variant="primary" (click)="onEdit(user)">Edit</app-button>
+  </div>
 </ng-template>
 
-<app-modal [isOpen]="isOpenModal()"
-    [title]="selectedUser() ? 'Cập nhật Người dùng': 'Thêm mới Người dùng'"
-    (close)="onCloseModal()">
-    <app-user-form [initialData]="selectedUser()"
-        (save)="onHandleSave($event)"
-        (cancel)="onCloseModal()">
-
-    </app-user-form>
+<app-modal
+  [isOpen]="isOpenModal()"
+  [title]="selectedUser() ? 'Cập nhật Người dùng' : 'Thêm mới Người dùng'"
+  (close)="onCloseModal()"
+>
+  <app-user-form [initialData]="selectedUser()" (save)="onHandleSave($event)" (cancel)="onCloseModal()" />
 </app-modal>

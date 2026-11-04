@@ -1,14 +1,14 @@
-export interface AuthResponse{
-    accessToken: string;
-    accessTokenExpiresAt: string; // DateTime → string ISO khi về FE
-    refreshToken?: string | null; // nếu UseCookie = true thì sẽ là null
-    refreshTokenExpiresAt: string;
+export interface AuthResponse {
+  accessToken: string;
+  accessTokenExpiresAt: string; // DateTime → string ISO khi về FE
+  refreshToken?: string | null; // nếu UseCookie = true thì sẽ là null
+  refreshTokenExpiresAt: string;
 }
 
-export interface LoginRequest{
-    username: string;
-    password: string;
-    device?: string | null;
+export interface LoginRequest {
+  username: string;
+  password: string;
+  device?: string | null;
 }
 
 // Body gửi lên khi refresh & access token.

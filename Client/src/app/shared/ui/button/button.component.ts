@@ -1,30 +1,32 @@
-import {
-  Component,
-  computed,
-  input,
-  output
-} from '@angular/core';
+import { Component, computed, input, output, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 
-export type ButtonVariant = 
-  | 'primary'   // Xanh dương đậm (Primary)
+export type ButtonVariant =
+  | 'primary' // Xanh dương đậm (Primary)
   | 'secondary' // Xám vừa (Secondary)
-  | 'success'   // Xanh lá (Success)
-  | 'danger'    // Đỏ (Danger)
-  | 'warning'   // Vàng cam (Warning)
-  | 'info'      // Xanh trời (Info)
-  | 'light'     // Trắng xám (Light)
-  | 'dark'      // Đen (Dark)
-  | 'link'      // Dạng liên kết
-  | 'outline'   // Viền (Generic Outline)
-  | 'ghost';    // Trong suốt
+  | 'success' // Xanh lá (Success)
+  | 'danger' // Đỏ (Danger)
+  | 'warning' // Vàng cam (Warning)
+  | 'info' // Xanh trời (Info)
+  | 'light' // Trắng xám (Light)
+  | 'dark' // Đen (Dark)
+  | 'link' // Dạng liên kết
+  | 'outline' // Viền (Generic Outline)
+  | 'ghost'; // Trong suốt
 export type ButtonSize = 'sm' | 'md' | 'lg';
 
 @Component({
   selector: 'app-button',
   standalone: true,
   imports: [CommonModule],
-  styles: [`:host { display: contents; }`], 
+  styles: [
+    `
+      :host {
+        display: contents;
+      }
+    `,
+  ],
+  changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <button
       [type]="type()"
@@ -37,17 +39,18 @@ export type ButtonSize = 'sm' | 'md' | 'lg';
              transition-all duration-200 focus:outline-none focus:ring-2
              focus:ring-offset-1 disabled:shadow-none"
     >
-      <span
-        *ngIf="loading()"
-        class="animate-spin h-4 w-4 border-2 border-current border-t-transparent rounded-full"
-        aria-hidden="true"
-      ></span>
+      @if (loading()) {
+        <span
+          class="animate-spin h-4 w-4 border-2 border-current border-t-transparent rounded-full"
+          aria-hidden="true"
+        ></span>
+      }
 
-      <ng-content select="[icon]"></ng-content>
-      <ng-content></ng-content>
-      <ng-content select="[icon-end]"></ng-content>
+      <ng-content select="[icon]" />
+      <ng-content />
+      <ng-content select="[icon-end]" />
     </button>
-  `
+  `,
 })
 export class ButtonComponent {
   // --- INPUTS (Signal) ---
@@ -59,14 +62,14 @@ export class ButtonComponent {
   fullWidth = input<boolean>(false);
 
   // --- OUTPUTS (Function based) ---
-  click = output<Event>(); 
+  click = output<Event>();
 
   // --- COMPUTED ---
   isDisabled = computed(() => this.disabled() || this.loading());
 
   computedClasses = computed(() => {
     const base = 'shadow-sm border';
-    
+
     const variants: Record<ButtonVariant, string> = {
       // 🔵 Primary (Blue)
       primary: 'bg-blue-600 border-transparent text-white hover:bg-blue-700 focus:ring-blue-500 shadow-blue-500/30',
@@ -99,7 +102,7 @@ export class ButtonComponent {
       outline: 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50 focus:ring-gray-200',
 
       // 👻 Ghost (Trong suốt, hover hiện nền nhẹ)
-      ghost: 'bg-transparent border-transparent text-gray-600 hover:bg-gray-100 hover:text-gray-900 shadow-none'
+      ghost: 'bg-transparent border-transparent text-gray-600 hover:bg-gray-100 hover:text-gray-900 shadow-none',
     };
 
     // const sizes: Record<ButtonSize, string> = {
@@ -111,7 +114,7 @@ export class ButtonComponent {
     const sizes: Record<ButtonSize, string> = {
       sm: 'px-3 h-7 text-xs rounded-md',
       md: 'px-4 h-8 text-sm rounded-md',
-      lg: 'px-6 h-10 text-base rounded-lg'
+      lg: 'px-6 h-10 text-base rounded-lg',
     };
 
     return [
@@ -119,9 +122,7 @@ export class ButtonComponent {
       variants[this.variant()],
       sizes[this.size()],
       this.fullWidth() ? 'w-full flex' : 'inline-flex',
-      this.isDisabled()
-        ? 'opacity-70 cursor-not-allowed focus:ring-0'
-        : 'active:scale-95 cursor-pointer'
+      this.isDisabled() ? 'opacity-70 cursor-not-allowed focus:ring-0' : 'active:scale-95 cursor-pointer',
     ];
   });
 

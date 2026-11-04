@@ -5,6 +5,6 @@ export const environment = {
   // ---- AUTH CONFIG ----
   auth: {
     useCookie: false,
-    cookieName: 'rt'
-  }
+    cookieName: 'rt',
+  },
 };

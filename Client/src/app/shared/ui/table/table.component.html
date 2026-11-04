@@ -1,123 +1,160 @@
 <div class="relative flex flex-col w-full h-full bg-white border border-gray-200 rounded-lg shadow-sm">
-
-    <div *ngIf="searchable()"
-        class="flex flex-col sm:flex-row justify-end items-center p-4 border-b border-gray-100 gap-4 bg-white rounded-t-lg">
-
-        <div class="relative w-full sm:w-64">
-            <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
-            </div>
-            <input type="text"
-                class="block w-full px-3 h-8 pl-9 text-sm border border-gray-300 rounded-md bg-gray-50 focus:ring-blue-500 focus:border-blue-500 outline-none placeholder-gray-400"
-                placeholder="Search..." (input)="onSearch($event)">
+  @if (searchable()) {
+    <div
+      class="flex flex-col sm:flex-row justify-end items-center p-4 border-b border-gray-100 gap-4 bg-white rounded-t-lg"
+    >
+      <div class="relative w-full sm:w-64">
+        <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+          <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+            />
+          </svg>
         </div>
+        <input
+          type="text"
+          class="block w-full px-3 h-8 pl-9 text-sm border border-gray-300 rounded-md bg-gray-50 focus:ring-blue-500 focus:border-blue-500 outline-none placeholder-gray-400"
+          placeholder="Search..."
+          (input)="onSearch($event)"
+        />
+      </div>
     </div>
+  }
 
-    <div class="overflow-auto flex-1 custom-scrollbar" [style.max-height]="scrollHeight()">
-        <table class="w-full text-sm text-left text-gray-500">
-            <thead class="text-xs text-gray-700 bg-gray-50 border-b sticky top-0 z-10 shadow-sm">
-                <tr>
-                    <th *ngIf="selectable()" class="px-4 py-2 w-4 bg-gray-50">
-                        <app-checkbox [indeterminate]="isIndeterminate()" [ngModel]="isAllSelected()"
-                            (ngModelChange)="toggleSelectAll()">
-                        </app-checkbox>
-                    </th>
-                    <th *ngFor="let col of columns()" scope="col"
-                        class="px-4 py-2 font-semibold tracking-wider whitespace-nowrap bg-gray-50"
-                        [class]="col.className" [style.width]="col.width" [style.min-width]="col.width">
-                        <div class="flex items-center gap-1 select-none cursor-pointer group" (click)="handleSort(col)">
-                            {{ col.header }}
-                            <span *ngIf="col.sortable"
-                                class="text-gray-300 flex flex-col text-[10px] leading-[0.5] group-hover:text-gray-500">
-                                <span [class.text-blue-600]="sortKey() === col.key && sortDir() === 'asc'">▲</span>
-                                <span [class.text-blue-600]="sortKey() === col.key && sortDir() === 'desc'">▼</span>
-                            </span>
-                        </div>
-                    </th>
-                </tr>
-            </thead>
+  <div class="overflow-auto flex-1 custom-scrollbar" [style.max-height]="scrollHeight()">
+    <table class="w-full text-sm text-left text-gray-500">
+      <thead class="text-xs text-gray-700 bg-gray-50 border-b sticky top-0 z-10 shadow-sm">
+        <tr>
+          @if (selectable()) {
+            <th class="px-4 py-2 w-4 bg-gray-50">
+              <app-checkbox
+                [indeterminate]="isIndeterminate()"
+                [ngModel]="isAllSelected()"
+                (ngModelChange)="toggleSelectAll()"
+              />
+            </th>
+          }
+          @for (col of columns(); track col) {
+            <th
+              scope="col"
+              class="px-4 py-2 font-semibold tracking-wider whitespace-nowrap bg-gray-50"
+              [class]="col.className"
+              [style.width]="col.width"
+              [style.min-width]="col.width"
+            >
+              <div class="flex items-center gap-1 select-none cursor-pointer group" (click)="handleSort(col)">
+                {{ col.header }}
+                @if (col.sortable) {
+                  <span class="text-gray-300 flex flex-col text-[10px] leading-[0.5] group-hover:text-gray-500">
+                    <span [class.text-blue-600]="sortKey() === col.key && sortDir() === 'asc'">▲</span>
+                    <span [class.text-blue-600]="sortKey() === col.key && sortDir() === 'desc'">▼</span>
+                  </span>
+                }
+              </div>
+            </th>
+          }
+        </tr>
+      </thead>
 
-            <tbody class="divide-y divide-gray-100">
-                <tr *ngIf="loading()">
-                    <td [attr.colspan]="totalCols()" class="p-10 text-center">
-                        <div class="flex justify-center items-center gap-2 text-blue-600">
-                            <span
-                                class="animate-spin h-5 w-5 border-2 border-current border-t-transparent rounded-full"></span>
-                            Loading...
-                        </div>
-                    </td>
-                </tr>
+      <tbody class="divide-y divide-gray-100">
+        @if (loading()) {
+          <tr>
+            <td [attr.colspan]="totalCols()" class="p-10 text-center">
+              <div class="flex justify-center items-center gap-2 text-blue-600">
+                <span class="animate-spin h-5 w-5 border-2 border-current border-t-transparent rounded-full"></span>
+                Loading...
+              </div>
+            </td>
+          </tr>
+        }
 
-                <tr *ngIf="!loading() && paginatedData().length === 0">
-                    <td [attr.colspan]="totalCols()" class="p-10 text-center text-gray-500 italic">No data found.</td>
-                </tr>
+        @if (!loading() && paginatedData().length === 0) {
+          <tr>
+            <td [attr.colspan]="totalCols()" class="p-10 text-center text-gray-500 italic">No data found.</td>
+          </tr>
+        }
 
-                <tr *ngFor="let item of paginatedData(); trackBy: trackByFn; let i = index"
-                    class="hover:bg-blue-50/50 transition-colors cursor-pointer"
-                    [class.bg-blue-100]="activeItem() === item" [class.hover:bg-blue-100]="activeItem() === item"
-                    [ngClass]="rowClassFn() ? rowClassFn()!(item) : ''" (click)="onRowClick(item)">
+        @for (item of paginatedData(); track trackByFn(i, item); let i = $index) {
+          <tr
+            class="hover:bg-blue-50/50 transition-colors cursor-pointer"
+            [class.bg-blue-100]="activeItem() === item"
+            [class.hover:bg-blue-100]="activeItem() === item"
+            [ngClass]="rowClassFn() ? rowClassFn()!(item) : ''"
+            (click)="onRowClick(item)"
+          >
+            @if (selectable()) {
+              <td class="px-4 py-2 w-4" (click)="$event.stopPropagation()">
+                <app-checkbox [ngModel]="isSelected(item)" (ngModelChange)="toggleSelection(item)" />
+              </td>
+            }
+            @for (col of columns(); track col) {
+              <td class="px-4 py-2 text-gray-700" [class]="col.className">
+                @if (col.template) {
+                  <ng-container *ngTemplateOutlet="col.template; context: { $implicit: item, index: i }" />
+                } @else {
+                  @switch (col.type) {
+                    @case ('date') {
+                      <span class="text-gray-700">
+                        {{ getCellValue(item, col.key) | date: col.format || 'dd/MM/yyyy' }}
+                      </span>
+                    }
+                    @case ('currency') {
+                      <span class="font-medium text-gray-900">
+                        {{ getCellValue(item, col.key) | currency: col.format || 'USD' }}
+                      </span>
+                    }
+                    @case ('number') {
+                      <span class="text-gray-900">
+                        {{ getCellValue(item, col.key) | number: col.format || '1.0-2' }}
+                      </span>
+                    }
+                    @default {
+                      <span class="text-gray-700">
+                        {{ getCellValue(item, col.key) }}
+                      </span>
+                    }
+                  }
+                }
+              </td>
+            }
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
 
-                    <td *ngIf="selectable()" class="px-4 py-2 w-4" (click)="$event.stopPropagation()">
-                        <app-checkbox [ngModel]="isSelected(item)" (ngModelChange)="toggleSelection(item)">
-                        </app-checkbox>
-                    </td>
-
-                    <td *ngFor="let col of columns()" class="px-4 py-2 text-gray-700" [class]="col.className">
-
-                        <ng-container *ngIf="col.template; else defaultText">
-                            <ng-container
-                                *ngTemplateOutlet="col.template; context: {$implicit: item, index: i}"></ng-container>
-                        </ng-container>
-
-                        <ng-template #defaultText>
-                            <ng-container [ngSwitch]="col.type">
-                                <span *ngSwitchCase="'date'" class="text-gray-700">
-                                    {{ getCellValue(item, col.key) | date: (col.format || 'dd/MM/yyyy') }}
-                                </span>
-                                <span *ngSwitchCase="'currency'" class="font-medium text-gray-900">
-                                    {{ getCellValue(item, col.key) | currency: (col.format || 'USD') }}
-                                </span>
-                                <span *ngSwitchCase="'number'" class="text-gray-900">
-                                    {{ getCellValue(item, col.key) | number: (col.format || '1.0-2') }}
-                                </span>
-                                <span *ngSwitchDefault class="text-gray-700">
-                                    {{ getCellValue(item, col.key) }}
-                                </span>
-                            </ng-container>
-                        </ng-template>
-                    </td>
-                </tr>
-            </tbody>
-        </table>
+  @if (pagination()) {
+    <div
+      class="flex flex-col sm:flex-row items-center justify-between px-4 py-2 border-t bg-gray-50 gap-2 rounded-b-lg"
+    >
+      <span class="text-sm text-gray-600">
+        Showing
+        <span class="font-medium text-gray-900">{{ (page() - 1) * pageSize() + 1 }}</span>
+        to
+        <span class="font-medium text-gray-900">{{ Math.min(page() * pageSize(), effectiveTotalRecords()) }}</span>
+        of
+        <span class="font-medium text-gray-900">{{ effectiveTotalRecords() }}</span> entries
+        @if (selectedCount() > 0) {
+          <span class="ml-2 px-2 py-0.5 bg-blue-100 text-blue-700 rounded text-xs font-medium animate-fade-in">
+            {{ selectedCount() }} selected
+          </span>
+        }
+      </span>
+      <div class="flex gap-2">
+        <app-button variant="outline" size="sm" [disabled]="page() === 1 || loading()" (click)="changePage(page() - 1)"
+          >Previous</app-button
+        >
+        <app-button
+          variant="outline"
+          size="sm"
+          [disabled]="page() * pageSize() >= effectiveTotalRecords() || loading()"
+          (click)="changePage(page() + 1)"
+          >Next</app-button
+        >
+      </div>
     </div>
-
-    <div *ngIf="pagination()"
-        class="flex flex-col sm:flex-row items-center justify-between px-4 py-2 border-t bg-gray-50 gap-2 rounded-b-lg">
-
-        <span class="text-sm text-gray-600">
-            Showing
-            <span class="font-medium text-gray-900">{{ (page() - 1) * pageSize() + 1 }}</span>
-            to
-            <span class="font-medium text-gray-900">{{ Math.min(page() * pageSize(), effectiveTotalRecords()) }}</span>
-            of
-            <span class="font-medium text-gray-900">{{ effectiveTotalRecords() }}</span> entries
-
-            <span *ngIf="selectedCount() > 0"
-                class="ml-2 px-2 py-0.5 bg-blue-100 text-blue-700 rounded text-xs font-medium animate-fade-in">
-                {{ selectedCount() }} selected
-            </span>
-        </span>
-
-        <div class="flex gap-2">
-            <app-button variant="outline" size="sm" [disabled]="page() === 1 || loading()"
-                (click)="changePage(page() - 1)">Previous</app-button>
-
-            <app-button variant="outline" size="sm"
-                [disabled]="page() * pageSize() >= effectiveTotalRecords() || loading()"
-                (click)="changePage(page() + 1)">Next</app-button>
-        </div>
-    </div>
+  }
 </div>

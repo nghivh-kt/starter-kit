@@ -17,13 +17,21 @@ export const routes: Routes = [
     canActivate: [authGuard],
     loadComponent: () => import('./layout/main-layout/main-layout.component').then((m) => m.MainLayoutComponent),
     children: [
-      { path: '', pathMatch: 'full', loadComponent: () => import('./features/home/home.component').then((m) => m.HomeComponent) },
+      {
+        path: '',
+        pathMatch: 'full',
+        loadComponent: () => import('./features/home/home.component').then((m) => m.HomeComponent),
+      },
       {
         path: 'user',
         canActivate: [adminGuard],
         loadComponent: () => import('./features/user/user-list/user-list.component').then((m) => m.UserListComponent),
       },
-      { path: 'category', loadComponent: () => import('./features/category/category-list/category-list.component').then((m) => m.CategoryListComponent) },
+      {
+        path: 'category',
+        loadComponent: () =>
+          import('./features/category/category-list/category-list.component').then((m) => m.CategoryListComponent),
+      },
     ],
   },
 

@@ -34,8 +34,8 @@ export class AuthService {
           next: (user) => this.currentUserSubject.next(user),
           error: (err) => {
             console.error('Init user failed -> Logout', err);
-            this.logout();// Token hết hạn hoặc rác -> Logout
-          }
+            this.logout(); // Token hết hạn hoặc rác -> Logout
+          },
         });
     } else {
       this.isLoading$.next(false); // Không có token -> Stop loading
@@ -44,11 +44,10 @@ export class AuthService {
 
   // --- LOGIN ---
   login(username: string, password: string): Observable<CurrentUser> {
-    return this.api.post<AuthResponse>('/auth/login', { username, password, device: 'web' })
-      .pipe(
-        tap(res => this.tokenService.saveSession(res)),
-        switchMap(() => this.fetchCurrentUser())
-      );
+    return this.api.post<AuthResponse>('/auth/login', { username, password, device: 'web' }).pipe(
+      tap((res) => this.tokenService.saveSession(res)),
+      switchMap(() => this.fetchCurrentUser()),
+    );
   }
 
   // --- REFRESH TOKEN ---
@@ -63,24 +62,21 @@ export class AuthService {
 
     const payload = {
       refreshToken: refreshToken,
-      expiredAccessToken: expiredToken
+      expiredAccessToken: expiredToken,
     };
 
-    return this.api.post<AuthResponse>('/auth/refresh', payload)
-      .pipe(
-        tap(res => this.tokenService.saveSession(res)),
-        catchError(err => {
-          this.logout(); // Refresh fail -> Logout
-          return throwError(() => err);
-        })
-      );
+    return this.api.post<AuthResponse>('/auth/refresh', payload).pipe(
+      tap((res) => this.tokenService.saveSession(res)),
+      catchError((err) => {
+        this.logout(); // Refresh fail -> Logout
+        return throwError(() => err);
+      }),
+    );
   }
 
   // --- GET USER INFO ---
   fetchCurrentUser(): Observable<CurrentUser> {
-    return this.api.get<CurrentUser>('/auth/me').pipe(
-      tap(user => this.currentUserSubject.next(user))
-    );
+    return this.api.get<CurrentUser>('/auth/me').pipe(tap((user) => this.currentUserSubject.next(user)));
   }
 
   // --- LOGOUT ---
@@ -111,7 +107,7 @@ export class AuthService {
     try {
       const user: any = jwtDecode(token);
 
-      return user ? (user.unique_name || user.sub) : '';
+      return user ? user.unique_name || user.sub : '';
     } catch (error) {
       return '';
     }
@@ -120,7 +116,7 @@ export class AuthService {
   // Lấy danh sách Role
   getUserRoles(): string[] {
     const token = this.tokenService.getAccessToken();
-    if (!token) return [];    
+    if (!token) return [];
 
     try {
       const user: any = jwtDecode(token);
@@ -144,7 +140,7 @@ export class AuthService {
     const userRoles = this.getUserRoles(); // Mảng dạng ["mnuMenu1:3", "mnuMenu2:3", ...]
 
     // Hàm .some() sẽ trả về true ngay khi tìm thấy 1 phần tử thỏa mãn điều kiện
-    return userRoles.some(roleString => {
+    return userRoles.some((roleString) => {
       const prefix = roleString.split(':')[0];
 
       return prefix === menuKey;

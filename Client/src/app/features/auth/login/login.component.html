@@ -1,20 +1,24 @@
 <div class="min-h-screen flex items-center justify-center bg-slate-50 p-4">
-
   <div class="w-full max-w-md bg-white rounded-2xl shadow-xl p-8 border border-gray-100">
-
     <div class="text-center mb-8">
       <h1 class="text-2xl font-bold text-gray-800">Welcome Back! 👋</h1>
       <p class="text-gray-500 text-sm mt-2">Please enter your details to sign in.</p>
     </div>
 
     <form [formGroup]="form" (ngSubmit)="submit()" class="flex flex-col gap-5">
-      <app-input label="Username" formControlName="username"></app-input>
+      <app-input label="Username" formControlName="username" />
 
-      <app-input label="Password" type="password" formControlName="password"></app-input>
+      <app-input label="Password" type="password" formControlName="password" />
 
-      <app-button type="submit" [disabled]="form.invalid || isLoading" [fullWidth]="true" [loading]="isLoading" class="mt-2">
-        {{ isLoading ? 'Signing in...' : 'Sign In' }}
-      </app-button>      
+      <app-button
+        type="submit"
+        [disabled]="form.invalid || isLoading()"
+        [fullWidth]="true"
+        [loading]="isLoading()"
+        class="mt-2"
+      >
+        {{ isLoading() ? 'Signing in...' : 'Sign In' }}
+      </app-button>
     </form>
   </div>
 </div>

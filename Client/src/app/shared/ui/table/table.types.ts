@@ -8,7 +8,7 @@ export interface TableColumn<T = any> {
   /** Tên hiển thị trên Header (vd: "Full Name") */
   header: string;
 
-  /** * Tên property trong data để lấy dữ liệu (vd: "fullName", "user.role.name") 
+  /** * Tên property trong data để lấy dữ liệu (vd: "fullName", "user.role.name")
    * Nếu dùng template thì key này chủ yếu để sort hoặc track
    */
   key: keyof T | string;
@@ -36,7 +36,7 @@ export interface TableColumn<T = any> {
 export interface PageEvent {
   /** Trang hiện tại (bắt đầu từ 1) */
   page: number;
-  
+
   /** Số dòng trên một trang */
   pageSize: number;
 }

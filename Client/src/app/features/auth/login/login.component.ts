@@ -1,5 +1,5 @@
-import { Component, inject, OnInit } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, inject, OnInit, signal, ChangeDetectionStrategy } from '@angular/core';
+
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { AuthService } from '@core/services/auth.service';
@@ -11,12 +11,8 @@ import { ButtonComponent } from '@shared/ui/button/button.component';
 @Component({
   selector: 'app-login',
   standalone: true,
-  imports: [
-    CommonModule,
-    ReactiveFormsModule,
-    InputComponent,
-    ButtonComponent
-  ],
+  imports: [ReactiveFormsModule, InputComponent, ButtonComponent],
+  changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './login.component.html',
 })
 export class LoginComponent implements OnInit {
@@ -27,16 +23,15 @@ export class LoginComponent implements OnInit {
   private toast = inject(ToastService);
 
   // State quản lý UI
-  isLoading = false;
-  errorMessage: string | null = null;
+  isLoading = signal(false);
 
   // Biến để lưu đường dẫn muốn quay lại
-  returnUrl: string = ''; 
+  returnUrl = '';
 
   form = this.fb.group({
     username: ['', Validators.required],
     password: ['', Validators.required],
-  });  
+  });
 
   ngOnInit(): void {
     this.returnUrl = this.route.snapshot.queryParams['returnUrl'] || '/';
@@ -56,25 +51,22 @@ export class LoginComponent implements OnInit {
     }
 
     // 2. Reset lỗi cũ và bật loading
-    this.errorMessage = null;
-    this.isLoading = true;
+    this.isLoading.set(true);
 
     const { username, password } = this.form.getRawValue();
 
     // 3. Gọi API
-    this.authService.login(username!, password!)
-      .pipe(
-        finalize(() => this.isLoading = false) 
-      )
+    this.authService
+      .login(username!, password!)
+      .pipe(finalize(() => this.isLoading.set(false)))
       .subscribe({
         next: () => {
-          this.router.navigateByUrl(this.returnUrl); 
+          this.router.navigateByUrl(this.returnUrl);
         },
         error: (err) => {
-          const msg = 'Username hoặc password không đúng'; 
+          const msg = 'Username hoặc password không đúng';
           this.toast.error(msg);
-          this.errorMessage = msg;
-        }
+        },
       });
   }
 }

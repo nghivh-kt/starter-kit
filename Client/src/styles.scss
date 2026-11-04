@@ -1,13 +1,14 @@
 @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;600;700;800&display=swap');
 
 /* Thiết lập cơ bản */
-html, body {
+html,
+body {
   height: 100%;
   margin: 0;
   padding: 0;
   font-family: 'Roboto', sans-serif;
-  background-color: #F8FAFC; /* slate-50 */
-  color: #1e293b;            /* slate-800 */
+  background-color: #f8fafc; /* slate-50 */
+  color: #1e293b; /* slate-800 */
   color-scheme: light;
 }
 
@@ -25,8 +26,8 @@ html, body {
 }
 
 /* Xoá mũi tên tăng giảm của input type="number" */
-input[type=number]::-webkit-inner-spin-button,
-input[type=number]::-webkit-outer-spin-button {
+input[type='number']::-webkit-inner-spin-button,
+input[type='number']::-webkit-outer-spin-button {
   -webkit-appearance: none;
   margin: 0;
 }

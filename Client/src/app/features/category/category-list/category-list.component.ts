@@ -1,5 +1,4 @@
-import { CommonModule } from '@angular/common';
-import { Component, effect, inject, signal, TemplateRef, viewChild } from '@angular/core';
+import { Component, effect, inject, signal, TemplateRef, viewChild, ChangeDetectionStrategy } from '@angular/core';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { Category } from '@core/models/category.model';
 import { CategoryService } from '@core/services/category.service';
@@ -10,15 +9,12 @@ import { ModalComponent } from '@shared/ui/modal/modal.component';
 import { TableComponent } from '@shared/ui/table/table.component';
 import { TableColumn } from '@shared/ui/table/table.types';
 import { finalize } from 'rxjs';
-import { CategoryFormComponent } from "../category-form/category-form.component";
+import { CategoryFormComponent } from '../category-form/category-form.component';
 
 @Component({
   selector: 'app-category-list',
-  imports: [
-    CommonModule, FormsModule, ReactiveFormsModule,
-    ButtonComponent, TableComponent, ModalComponent,
-    CategoryFormComponent
-],
+  imports: [FormsModule, ReactiveFormsModule, ButtonComponent, TableComponent, ModalComponent, CategoryFormComponent],
+  changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './category-list.component.html',
 })
 export class CategoryListComponent {
@@ -39,12 +35,12 @@ export class CategoryListComponent {
 
   isOpenModal = signal<boolean>(false);
 
-  constructor(){
+  constructor() {
     this.loadAllCategories();
 
     effect(() => {
       // Khi các template đã sẵn sàng (signal có giá trị)
-      let actionTemp = this.actionTemplate();
+      const actionTemp = this.actionTemplate();
 
       // Cập nhật lại columns config
 
@@ -52,75 +48,73 @@ export class CategoryListComponent {
         { key: 'actions', header: 'Actions', template: actionTemp, width: '50px' },
         { key: 'id', header: 'ID' },
         { key: 'name', header: 'Name' },
-        { key: 'description', header: 'Description' }
-      ])
+        { key: 'description', header: 'Description' },
+      ]);
     });
   }
 
-  loadAllCategories(){
-    this.categoryService.getAllCategories()
-      .pipe(
-        finalize(() => this.isLoading.set(false))
-      )
+  loadAllCategories() {
+    this.categoryService
+      .getAllCategories()
+      .pipe(finalize(() => this.isLoading.set(false)))
       .subscribe({
         next: (res) => {
           this.categories.set(res);
-          this.filteredCategories.set(res);          
+          this.filteredCategories.set(res);
         },
         error: (err) => {
           this.toast.error(err.error?.message || err.message);
-        }
-      })
+        },
+      });
   }
 
-  onSearch(term: string){
+  onSearch(term: string) {
     const searchTerm = term.toLocaleLowerCase().trim();
 
     this.currentPage.set(1);
 
-    if(!searchTerm){
+    if (!searchTerm) {
       // Nếu xóa hết ô search -> Trả lại danh sách gốc
       this.filteredCategories.set(this.categories());
       return;
     }
 
     // Logic lọc
-    const results = this.categories().filter(item => 
-      item.name.toLocaleLowerCase().includes(searchTerm) ||
-      item.description.toLocaleLowerCase().includes(searchTerm)
+    const results = this.categories().filter(
+      (item) =>
+        item.name.toLocaleLowerCase().includes(searchTerm) || item.description.toLocaleLowerCase().includes(searchTerm),
     );
 
     this.filteredCategories.set(results);
   }
 
-  onCreate(){
+  onCreate() {
     this.selectedCategory.set(null);
     this.isOpenModal.set(true);
   }
 
-  onEdit(category: any){
+  onEdit(category: any) {
     this.selectedCategory.set(category);
     this.isOpenModal.set(true);
   }
 
-  onDelete(category: any){
+  onDelete(category: any) {
     this.toast.error('Chưa triển khai...');
   }
 
-  onHandleSave(data: any){
+  onHandleSave(data: any) {
     this.isLoading.set(true);
 
     const payload = {
-      ...data
+      ...data,
     };
 
-    if(this.selectedCategory()){
+    if (this.selectedCategory()) {
       // Update
       const id = this.selectedCategory()!.id;
-      this.categoryService.updateCategory(id, payload)
-        .pipe(
-          finalize(() => this.isLoading.set(false))          
-        )      
+      this.categoryService
+        .updateCategory(id, payload)
+        .pipe(finalize(() => this.isLoading.set(false)))
         .subscribe({
           next: (res) => {
             this.toast.success('Cập nhật thành công');
@@ -129,15 +123,13 @@ export class CategoryListComponent {
           },
           error: (err) => {
             this.toast.error(err.error?.message || err.message);
-          }
-        })
-    }
-    else{
+          },
+        });
+    } else {
       // Insert
-      this.categoryService.createCategory(payload)
-        .pipe(
-          finalize(() => this.isLoading.set(false))          
-        )      
+      this.categoryService
+        .createCategory(payload)
+        .pipe(finalize(() => this.isLoading.set(false)))
         .subscribe({
           next: (res) => {
             this.toast.success('Thêm mới thành công');
@@ -146,12 +138,12 @@ export class CategoryListComponent {
           },
           error: (err) => {
             this.toast.error(err.error?.message || err.message);
-          }
-        })
+          },
+        });
     }
   }
 
-  onCloseModal(){
+  onCloseModal() {
     this.selectedCategory.set(null);
     this.isOpenModal.set(false);
   }

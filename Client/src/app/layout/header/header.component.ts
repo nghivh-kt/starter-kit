@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, signal, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule, Router } from '@angular/router';
 import { AuthService } from '@core/services/auth.service';
@@ -11,7 +11,14 @@ import { ToastService } from '@core/services/toast.service';
   imports: [CommonModule, RouterModule],
   templateUrl: './header.component.html',
   // 👇 QUAN TRỌNG: Giữ header hoạt động đúng trong Flex column
-  styles: [`:host { display: block; }`] 
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  styles: [
+    `
+      :host {
+        display: block;
+      }
+    `,
+  ],
 })
 export class HeaderComponent {
   protected layout = inject(LayoutService);
@@ -21,16 +28,16 @@ export class HeaderComponent {
 
   // Expose stream user cho HTML dùng async pipe
   currentUser$ = this.auth.currentUser$;
-  
-  userMenuOpen = false;
+
+  userMenuOpen = signal(false);
 
   toggleUserMenu() {
-    this.userMenuOpen = !this.userMenuOpen;
+    this.userMenuOpen.update((open) => !open);
   }
 
   logout() {
     this.auth.logout();
-    this.toast.success("Đăng xuất thành công!");
+    this.toast.success('Đăng xuất thành công!');
     this.router.navigate(['/auth/login']);
   }
 }

@@ -9,15 +9,15 @@ import { Category } from '@core/models/category.model';
 export class CategoryService {
   api = inject(ApiHttpService);
 
-  getAllCategories(): Observable<Category[]>{
+  getAllCategories(): Observable<Category[]> {
     return this.api.get('/categories');
   }
 
-  createCategory(data: Category){
+  createCategory(data: Category) {
     return this.api.post('/categories', data);
   }
 
-  updateCategory(id: number, data: Category){
+  updateCategory(id: number, data: Category) {
     return this.api.put(`/categories/${id}`, data);
   }
 }

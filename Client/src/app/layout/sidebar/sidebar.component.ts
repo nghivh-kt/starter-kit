@@ -1,5 +1,5 @@
-import { Component, inject, signal } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, inject, signal, ChangeDetectionStrategy } from '@angular/core';
+
 import { RouterModule } from '@angular/router';
 import { LayoutService } from '@core/services/layout.service';
 import { AuthService } from '@core/services/auth.service';
@@ -17,9 +17,16 @@ export interface MenuItem {
 @Component({
   selector: 'app-sidebar',
   standalone: true,
-  imports: [CommonModule, RouterModule],
+  imports: [RouterModule],
   templateUrl: './sidebar.component.html',
-  styles: [`:host { display: contents; }`]
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  styles: [
+    `
+      :host {
+        display: contents;
+      }
+    `,
+  ],
 })
 export class SidebarComponent {
   protected layout = inject(LayoutService);
@@ -32,15 +39,15 @@ export class SidebarComponent {
     { label: 'Danh mục', icon: '🗂️', link: '/category' },
   ];
 
-  menuItems: MenuItem[] = this.allMenuItems.filter(item =>
-    !item.roles || item.roles.some(role => this.authService.hasRole(role))
+  menuItems: MenuItem[] = this.allMenuItems.filter(
+    (item) => !item.roles || item.roles.some((role) => this.authService.hasRole(role)),
   );
 
   // State quản lý Tooltip
   tooltip = signal<{ label: string; top: number; visible: boolean }>({
     label: '',
     top: 0,
-    visible: false
+    visible: false,
   });
 
   // Khi chuột vào menu item
@@ -55,7 +62,7 @@ export class SidebarComponent {
     this.tooltip.set({
       label,
       top: rect.top + (rect.height - 30) / 2, // 30 là chiều cao ước lượng của tooltip
-      visible: true
+      visible: true,
     });
   }
 

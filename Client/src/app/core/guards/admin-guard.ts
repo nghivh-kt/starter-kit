@@ -8,7 +8,7 @@ export const adminGuard: CanActivateFn = (route, state) => {
 
   console.log('Begin Admin guard');
 
-  if(authService.hasRole('Admin')){
+  if (authService.hasRole('Admin')) {
     console.log('Đủ quyền Admin -> Cho qua');
     return true;
   }

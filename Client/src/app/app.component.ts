@@ -1,4 +1,4 @@
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { Component, inject, OnInit, signal, ChangeDetectionStrategy } from '@angular/core';
 import { Router, RouterOutlet } from '@angular/router';
 import { AuthService } from '@core/services/auth.service';
 import { LoadingComponent } from '@shared/components/loading/loading.component';
@@ -6,11 +6,8 @@ import { ToastComponent } from '@shared/components/toast/toast.component';
 
 @Component({
   selector: 'app-root',
-  imports: [
-    RouterOutlet,
-    LoadingComponent,
-    ToastComponent
-  ],
+  imports: [RouterOutlet, LoadingComponent, ToastComponent],
+  changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './app.component.html',
 })
 export class App implements OnInit {
@@ -25,13 +22,13 @@ export class App implements OnInit {
     // Lý do: AuthGuard đã làm việc này rồi.
     // Nếu AuthGuard thấy không có token -> Nó đá về Login.
     // Nếu AuthGuard thấy có token -> Nó cho vào -> initializeUser chạy -> Interceptor Refresh.
-    
+
     // Việc để AppComponent tự navigate thủ công rất dễ gây xung đột với Guard.
-    
+
     // 2. Global Logout Handler
     // this.authService.currentUser$.subscribe((user) => {
     //   const isPublicPage = this.router.url.includes('/auth/');
-      
+
     //   // Nếu user null (đã logout) và không ở trang public
     //   if (!user && !isPublicPage) {
     //     // Double check trạng thái loading để tránh redirect oan khi F5

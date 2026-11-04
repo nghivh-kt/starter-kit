@@ -5,11 +5,11 @@ import { Injectable, signal } from '@angular/core';
 })
 export class LayoutService {
   // Dùng Signal cho Reactive
-  isSidebarOpen = signal(false);       // Mobile: Hiện/Ẩn sidebar
-  isSidebarCollapsed = signal(false);  // Desktop: Thu nhỏ/Phóng to
+  isSidebarOpen = signal(false); // Mobile: Hiện/Ẩn sidebar
+  isSidebarCollapsed = signal(false); // Desktop: Thu nhỏ/Phóng to
 
   toggleSidebar() {
-    this.isSidebarOpen.update(v => !v);
+    this.isSidebarOpen.update((v) => !v);
   }
 
   closeSidebar() {
@@ -17,6 +17,6 @@ export class LayoutService {
   }
 
   toggleCollapse() {
-    this.isSidebarCollapsed.update(v => !v);
+    this.isSidebarCollapsed.update((v) => !v);
   }
 }

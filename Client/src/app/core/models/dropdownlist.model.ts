@@ -1,4 +1,4 @@
-export interface DropDownListDto{
-    value: string;
-    label: string;
+export interface DropDownListDto {
+  value: string;
+  label: string;
 }

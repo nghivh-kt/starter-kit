@@ -14,8 +14,13 @@ npm start      # http://localhost:4200
 ## Lệnh thường dùng
 
 ```bash
-npm run build  # bản production, xuất ra dist/
+npm run build   # bản production, xuất ra dist/
+npm test        # unit test bằng Vitest
+npm run lint    # ESLint, gồm quy tắc accessibility của template
+npm run format  # Prettier
 ```
+
+Cần Node phiên bản trong `.nvmrc` (22.22.3 trở lên).
 
 ## Cấu trúc
 

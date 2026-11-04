@@ -10,13 +10,13 @@ export const publicGuard: CanActivateFn = (route, state) => {
 
   console.log('Begin Public guard');
 
-  // ❌ SAI: if (tokenService.getAccessToken()) 
+  // ❌ SAI: if (tokenService.getAccessToken())
   // -> Token hết hạn cũng bị đá về Dashboard -> Gây vòng lặp
 
   // ✅ ĐÚNG: Chỉ khi token CÒN HẠN mới đá về Dashboard
   if (tokenService.isAccessTokenValid()) {
     console.log('Token còn hạn -> Đá về Dashboard');
-    router.navigate(['/']); 
+    router.navigate(['/']);
     return false;
   }
 

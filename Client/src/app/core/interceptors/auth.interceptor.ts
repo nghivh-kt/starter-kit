@@ -24,7 +24,7 @@ export const authInterceptor: HttpInterceptorFn = (req: HttpRequest<any>, next: 
   let authReq = req;
   if (accessToken && !isAuthUrl) {
     authReq = req.clone({
-      setHeaders: { Authorization: `Bearer ${accessToken}` }
+      setHeaders: { Authorization: `Bearer ${accessToken}` },
     });
   }
 
@@ -49,7 +49,7 @@ export const authInterceptor: HttpInterceptorFn = (req: HttpRequest<any>, next: 
       }
 
       return throwError(() => error);
-    })
+    }),
   );
 };
 
@@ -58,13 +58,15 @@ const handle401Error = (req: HttpRequest<any>, next: HttpHandlerFn, authService:
   // CASE A: Có người đang refresh -> Xếp hàng đợi
   if (isRefreshing) {
     return refreshTokenSubject.pipe(
-      filter(token => token !== null), // Chờ tín hiệu có token mới
+      filter((token) => token !== null), // Chờ tín hiệu có token mới
       take(1),
-      switchMap(token => {
-        return next(req.clone({
-          setHeaders: { Authorization: `Bearer ${token}` }
-        }));
-      })
+      switchMap((token) => {
+        return next(
+          req.clone({
+            setHeaders: { Authorization: `Bearer ${token}` },
+          }),
+        );
+      }),
     );
   }
 
@@ -77,14 +79,16 @@ const handle401Error = (req: HttpRequest<any>, next: HttpHandlerFn, authService:
       isRefreshing = false;
       refreshTokenSubject.next(res.accessToken); // Mở cửa, bắn token mới cho hàng đợi
 
-      return next(req.clone({
-        setHeaders: { Authorization: `Bearer ${res.accessToken}` }
-      }));
+      return next(
+        req.clone({
+          setHeaders: { Authorization: `Bearer ${res.accessToken}` },
+        }),
+      );
     }),
     catchError((err) => {
       isRefreshing = false;
       refreshTokenSubject.next(null);
       return throwError(() => err); // Logout đã được xử lý bên trong authService.refreshToken
-    })
+    }),
   );
 };

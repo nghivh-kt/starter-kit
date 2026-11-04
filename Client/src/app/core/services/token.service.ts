@@ -3,7 +3,7 @@ import { AuthResponse } from '@core/models/auth.models';
 import { jwtDecode } from 'jwt-decode';
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class TokenService {
   private readonly ACCESS_TOKEN_KEY = 'accessToken';
@@ -24,7 +24,7 @@ export class TokenService {
   saveSession(res: AuthResponse): void {
     localStorage.setItem(this.ACCESS_TOKEN_KEY, res.accessToken);
     localStorage.setItem(this.ACCESS_TOKEN_EXPIRES_KEY, res.accessTokenExpiresAt);
-    
+
     if (res.refreshToken) {
       localStorage.setItem(this.REFRESH_TOKEN_KEY, res.refreshToken);
     }

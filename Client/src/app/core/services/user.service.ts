@@ -4,20 +4,20 @@ import { Observable } from 'rxjs';
 import { ApiHttpService } from './api-http.service';
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class UserService {
   api = inject(ApiHttpService);
 
-  getAllUsers() : Observable<UserDto[]>{
+  getAllUsers(): Observable<UserDto[]> {
     return this.api.get('/users');
   }
 
-  getUserById(id: number) : Observable<UserDto>{
+  getUserById(id: number): Observable<UserDto> {
     return this.api.get(`/users/${id}`);
   }
 
-  createUser(data: UserUpsert) : Observable<UserDto>{
+  createUser(data: UserUpsert): Observable<UserDto> {
     return this.api.post('/users', data);
   }
 

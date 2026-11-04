@@ -1,52 +1,68 @@
 <header class="flex h-16 items-center justify-between bg-white px-4 shadow-sm z-10 border-b border-gray-200">
-      
   <div class="flex items-center">
-    <button (click)="layout.toggleSidebar()" class="mr-4 text-gray-600 hover:text-blue-600  md:hidden">
-      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
+    <button (click)="layout.toggleSidebar()" class="mr-4 text-gray-600 hover:text-blue-600 md:hidden">
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke-width="1.5"
+        stroke="currentColor"
+        class="w-6 h-6"
+      >
         <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
       </svg>
     </button>
 
-    <button (click)="layout.toggleCollapse()" 
-            class="hidden text-gray-500 hover:text-blue-600 md:block transition-transform duration-300"
-            [class.rotate-180]="layout.isSidebarCollapsed()">
-      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
+    <button
+      (click)="layout.toggleCollapse()"
+      class="hidden text-gray-500 hover:text-blue-600 md:block transition-transform duration-300"
+      [class.rotate-180]="layout.isSidebarCollapsed()"
+    >
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke-width="1.5"
+        stroke="currentColor"
+        class="w-6 h-6"
+      >
         <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25H12" />
       </svg>
     </button>
   </div>
 
   <div class="relative">
-    
-    <div *ngIf="currentUser$ | async as user; else notLoggedIn" 
-         (click)="toggleUserMenu()"
-         class="flex cursor-pointer items-center gap-3 rounded-full border border-transparent p-1 hover:bg-gray-100 transition-colors">
-      
-      <div class="text-right hidden sm:block">
-        <div class="text-sm font-semibold text-gray-700">{{ user.fullname }}</div>
-        <!-- <div class="text-xs text-gray-500">{{user.username}} | {{user.section}}</div> -->
+    @if (currentUser$ | async; as user) {
+      <div
+        (click)="toggleUserMenu()"
+        class="flex cursor-pointer items-center gap-3 rounded-full border border-transparent p-1 hover:bg-gray-100 transition-colors"
+      >
+        <div class="text-right hidden sm:block">
+          <div class="text-sm font-semibold text-gray-700">{{ user.fullname }}</div>
+          <!-- <div class="text-xs text-gray-500">{{user.username}} | {{user.section}}</div> -->
+        </div>
+        <img src="/admin.png" alt="Ảnh đại diện" />
+        @if (userMenuOpen()) {
+          <div
+            class="absolute right-0 top-12 mt-2 w-48 origin-top-right rounded-md bg-white py-1 shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none animate-fade-in-down z-50"
+          >
+            <div class="px-4 py-2 border-b text-xs text-gray-400">Tài khoản</div>
+            <button class="block w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100">
+              Hồ sơ cá nhân
+            </button>
+            <button (click)="logout()" class="block w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50">
+              Đăng xuất
+            </button>
+          </div>
+        }
       </div>
-      
-      <img src="/admin.png" alt="Ảnh đại diện">
-           
-      <div *ngIf="userMenuOpen" 
-           class="absolute right-0 top-12 mt-2 w-48 origin-top-right rounded-md bg-white py-1 shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none animate-fade-in-down z-50">
-        <div class="px-4 py-2 border-b text-xs text-gray-400">Tài khoản</div>
-        <button class="block w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100">
-          Hồ sơ cá nhân
-        </button>
-        <button (click)="logout()" class="block w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50">
-          Đăng xuất
-        </button>
-      </div>
-    </div>
-
-    <ng-template #notLoggedIn>
-      <a routerLink="/auth/login" 
-         class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors shadow-sm">
+    } @else {
+      <a
+        routerLink="/auth/login"
+        class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors shadow-sm"
+      >
         Đăng nhập
       </a>
-    </ng-template>
-
+    }
   </div>
 </header>
