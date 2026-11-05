@@ -23,7 +23,7 @@ public sealed class AuditLogTests(ApiFixture fixture)
         var newName = ApiTestHelpers.UniqueName("new");
 
         var category = await client.CreateCategoryAsync(oldName);
-        var update = await client.PutAsJsonAsync($"/api/categories/{category.Id}", new CategoryUpdateRequest { Name = newName });
+        var update = await client.PutAsJsonAsync($"/api/categories/{category.Id}", new CategoryUpdateRequest { Name = newName, RowVersion = category.RowVersion });
         Assert.Equal(HttpStatusCode.OK, update.StatusCode);
         Assert.Equal(HttpStatusCode.NoContent, (await client.DeleteAsync($"/api/categories/{category.Id}")).StatusCode);
 
@@ -35,6 +35,38 @@ public sealed class AuditLogTests(ApiFixture fixture)
         Assert.Contains(oldName, logs[1].OldValues);
         Assert.Contains(newName, logs[1].NewValues);
         Assert.Contains("DeletedAt", logs[2].ChangedColumns);
+        Assert.All(logs, l =>
+        {
+            Assert.DoesNotContain("RowVersion", l.NewValues ?? string.Empty);
+            Assert.DoesNotContain("RowVersion", l.ChangedColumns ?? string.Empty);
+        });
+    }
+
+    [Fact]
+    public async Task BlindUpdate_StillLogsNewValues_WithRowVersionColumn()
+    {
+        var admin = await Api.LoginAsAdminAsync();
+        var category = await Api.CreateApiClient(admin.AccessToken).CreateCategoryAsync();
+        var newName = ApiTestHelpers.UniqueName("blind");
+
+        await using (var scope = Api.Services.CreateAsyncScope())
+        {
+            var unitOfWork = scope.ServiceProvider.GetRequiredService<IUnitOfWork>();
+            unitOfWork.Repository<Category>().Update(new Category
+            {
+                Id = category.Id,
+                Name = newName,
+                IsActive = true,
+                CreatedAt = category.CreatedAt,
+                RowVersion = category.RowVersion
+            });
+            await unitOfWork.SaveChangesAsync();
+        }
+
+        var log = (await ReadLogsAsync("Categories", category.Id))[^1];
+        Assert.Equal(AuditActionType.Updated, log.ActionType);
+        Assert.Null(log.OldValues);
+        Assert.Contains(newName, log.NewValues);
     }
 
     [Fact]

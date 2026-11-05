@@ -25,6 +25,7 @@ namespace API.Services.Validators
         {
             RuleFor(x => x.Name).Cascade(CascadeMode.Stop).MustBeValidCategoryName();
             RuleFor(x => x.Description).MustBeValidCategoryDescription();
+            RuleFor(x => x.RowVersion).NotEmpty().WithMessage("Thiếu phiên bản dữ liệu. Vui lòng tải lại trang rồi thử lại.");
         }
     }
 

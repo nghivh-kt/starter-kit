@@ -28,6 +28,7 @@ export interface SelectOption<T = unknown> {
           [id]="id()"
           [disabled]="disabled()"
           [ngModel]="value()"
+          [ngModelOptions]="{ standalone: true }"
           (ngModelChange)="onSelectChange($event)"
           (blur)="onTouched()"
           [attr.aria-required]="state.isRequired()"
@@ -120,7 +121,7 @@ export class SelectComponent<T = unknown> implements ControlValueAccessor {
     if (customError) return customError;
     const serverError = this.state.errors()?.['server'];
     if (serverError) return serverError;
-    return this.state.errors()?.['required'] ? `${this.label() || 'This field'} is required` : 'Invalid selection';
+    return this.state.errors()?.['required'] ? `${this.label() || 'Trường này'} là bắt buộc` : 'Invalid selection';
   });
 
   private onChange: (value: T | null) => void = () => {};

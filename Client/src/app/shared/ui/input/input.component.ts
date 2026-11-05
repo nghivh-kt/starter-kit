@@ -98,13 +98,14 @@ export class InputComponent implements ControlValueAccessor {
     if (serverError) return serverError;
 
     const errors = this.state.errors();
-    if (!errors) return 'Invalid value';
+    if (errors?.['required']) return `${this.label() || 'Trường này'} là bắt buộc`;
+    if (errors?.['email']) return 'Email không hợp lệ';
+    if (errors?.['pattern']) return `${this.label() || 'Giá trị'} không đúng định dạng`;
+    if (errors?.['minlength']) return `Phải có ít nhất ${errors['minlength'].requiredLength} ký tự`;
+    if (errors?.['maxlength']) return `Không được vượt quá ${errors['maxlength'].requiredLength} ký tự`;
+    if (errors?.['passwordTooLong']) return 'Mật khẩu quá dài (tối đa 72 byte; mỗi chữ có dấu chiếm 2-3 byte)';
 
-    if (errors['required']) return `${this.label() || 'This field'} is required`;
-    if (errors['email']) return 'Invalid email address';
-    if (errors['minlength']) return `Minimum ${errors['minlength'].requiredLength} characters required`;
-
-    return 'Invalid value';
+    return 'Giá trị không hợp lệ';
   });
 
   private onChange: (value: string) => void = () => {};

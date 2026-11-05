@@ -1,0 +1,20 @@
+<form [formGroup]="form" (ngSubmit)="submit()" class="flex flex-col gap-3">
+  <app-input label="Tên đăng nhập" formControlName="userName" />
+  <app-input label="Họ và tên" formControlName="fullName" />
+  <app-input label="Email" type="email" formControlName="email" />
+
+  @if (!isEdit()) {
+    <app-input label="Mật khẩu" type="password" formControlName="password" />
+  }
+
+  <app-select label="Vai trò" [options]="roles" formControlName="role" />
+
+  @if (isEdit()) {
+    <app-checkbox formControlName="isActive">Đang hoạt động</app-checkbox>
+  }
+
+  <div class="flex flex-row justify-end gap-3">
+    <app-button variant="outline" (click)="cancelled.emit()">Huỷ</app-button>
+    <app-button type="submit" [loading]="isSaving()">{{ isEdit() ? 'Cập nhật' : 'Thêm mới' }}</app-button>
+  </div>
+</form>

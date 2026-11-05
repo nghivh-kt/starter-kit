@@ -61,4 +61,6 @@ Patterns to follow:
 - **Dynamic sorting** must whitelist columns; see `SortColumns` in `CategoryService`. `QueryableExtensions.ApplySorting` appends `Id` as a tiebreaker so paging stays stable.
 - **Updates**: load the entity with `Query(asNoTracking: false)`, change its properties, then call `SaveChangesAsync`. No `Update()` call is needed.
 - **`PUT`** returns 200 with the updated record.
+- **Concurrency**: `AuditableEntity.RowVersion` is a SQL Server rowversion. Return it in the response, accept it in the update request, and compare it in the service; see `CategoryService.UpdateAsync`.
+- **Client**: copy `Client/src/app/features/categories`. Forms call the API and show their own errors; list state (page, search, sort) lives in the URL through `shared/ui/table/list-query.ts`.
 - **Routes** are written in lowercase (`[Route("api/categories")]`), not `[controller]`: the refresh cookie's path is case-sensitive and the generated OpenAPI paths follow the attribute.

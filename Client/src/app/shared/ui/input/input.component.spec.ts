@@ -37,7 +37,7 @@ describe('InputComponent', () => {
     host.control.markAsTouched();
     await fixture.whenStable();
 
-    expect(alert()?.textContent).toContain('Tên is required');
+    expect(alert()?.textContent).toContain('Tên là bắt buộc');
     expect(nativeInput().getAttribute('aria-invalid')).toBe('true');
   });
 

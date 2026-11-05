@@ -1530,7 +1530,8 @@
           "createdAt",
           "id",
           "isActive",
-          "name"
+          "name",
+          "rowVersion"
         ],
         "type": "object",
         "properties": {
@@ -1556,6 +1557,10 @@
             "type": "string",
             "format": "date-time",
             "nullable": true
+          },
+          "rowVersion": {
+            "type": "string",
+            "format": "byte"
           }
         },
         "additionalProperties": false
@@ -1619,6 +1624,10 @@
           "isActive": {
             "type": "boolean",
             "nullable": true
+          },
+          "rowVersion": {
+            "type": "string",
+            "format": "byte"
           }
         },
         "additionalProperties": false

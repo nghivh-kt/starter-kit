@@ -71,7 +71,7 @@ namespace API.Data
 
         // 2. Các cột kỹ thuật: Bỏ qua không tính là thay đổi (Tránh sinh log rác liên tục)
         private static readonly HashSet<string> NoiseProperties =
-            new(StringComparer.OrdinalIgnoreCase) { "UpdatedAt" };
+            new(StringComparer.OrdinalIgnoreCase) { "UpdatedAt", nameof(AuditableEntity.RowVersion) };
 
         // 3. Cấu hình JSON: Giữ nguyên tiếng Việt có dấu, không bị mã hóa thành \uXXXX
         private static readonly JsonSerializerOptions AuditJsonOptions = new()
@@ -143,7 +143,10 @@ namespace API.Data
                                 //
                                 // Ngoại lệ: entity gắn vào bằng Repository.Update() (không nạp từ DB) -> EF không biết giá trị cũ,
                                 // mọi cột đều bị đánh dấu sửa và Original == Current. Khi đó ghi toàn bộ giá trị mới, OldValues = null.
-                                var isBlindUpdate = entry.Properties.All(p => p.IsModified || p.Metadata.IsPrimaryKey());
+                                // RowVersion do SQL Server sinh, không bao giờ được đánh dấu sửa nên không tính vào đây.
+                                var isBlindUpdate = entry.Properties
+                                    .Where(p => p.Metadata.Name != nameof(AuditableEntity.RowVersion))
+                                    .All(p => p.IsModified || p.Metadata.IsPrimaryKey());
 
                                 var oldValues = new Dictionary<string, object?>();
                                 var newValues = new Dictionary<string, object?>();
@@ -205,7 +208,7 @@ namespace API.Data
                     var newValues = new Dictionary<string, object?>();
                     foreach (var p in entry.Properties)
                     {
-                        if (SensitiveProperties.Contains(p.Metadata.Name)) continue;
+                        if (SensitiveProperties.Contains(p.Metadata.Name) || p.Metadata.Name == nameof(AuditableEntity.RowVersion)) continue;
                         newValues[p.Metadata.Name] = p.CurrentValue;
                     }
                     log.NewValues = Serialize(newValues);

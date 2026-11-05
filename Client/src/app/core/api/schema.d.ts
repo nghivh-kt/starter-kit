@@ -1288,6 +1288,8 @@ export interface components {
             createdAt: string;
             /** Format: date-time */
             updatedAt?: string | null;
+            /** Format: byte */
+            rowVersion: string;
         };
         CategoryResponsePagedResult: {
             items: components["schemas"]["CategoryResponse"][];
@@ -1306,6 +1308,8 @@ export interface components {
             name?: string;
             description?: string | null;
             isActive?: boolean | null;
+            /** Format: byte */
+            rowVersion?: string;
         };
         ChangePasswordRequest: {
             currentPassword?: string;

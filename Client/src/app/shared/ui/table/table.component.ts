@@ -1,204 +1,154 @@
-import {
-  Component,
-  computed,
-  input,
-  model, // ✨ NEW: Dùng model cho two-way binding
-  output,
-  signal,
-  ChangeDetectionStrategy,
-} from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, input, model, output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-
-import { TableColumn, PageEvent } from './table.types';
-import { CheckboxComponent } from '../checkbox/checkbox.component'; // Giả sử path đúng
-import { ButtonComponent } from '../button/button.component'; // Giả sử path đúng
+import { ButtonComponent } from '../button/button.component';
+import { CheckboxComponent } from '../checkbox/checkbox.component';
+import { PageEvent, TableColumn } from './table.types';
 
 @Component({
   selector: 'app-table',
-  standalone: true,
   imports: [CommonModule, FormsModule, CheckboxComponent, ButtonComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './table.component.html',
 })
-export class TableComponent<T = any> {
-  Math = Math;
+export class TableComponent<T = unknown> {
+  protected readonly Math = Math;
 
-  // --- DATA INPUTS ---
-  data = input<T[]>([]); // Dữ liệu hiển thị
-  columns = input.required<TableColumn<T>[]>();
+  // --- DỮ LIỆU ---
+  readonly data = input<T[]>([]);
+  readonly columns = input.required<TableColumn<T>[]>();
+  /** Hai chiều: [(selection)]="selectedRows" */
+  readonly selection = model<T[]>([]);
+  readonly activeItem = model<T | null>(null);
 
-  // --- MODEL (THAY ĐỔI LỚN NHẤT) ---
-  // Vừa là Input nhận vào, vừa là Output bắn ra.
-  // Dùng cú pháp [(selection)]="selectedRows" ở component cha
-  selection = model<T[]>([]);
+  // --- CẤU HÌNH ---
+  readonly loading = input(false);
+  readonly selectable = input(false);
+  readonly searchable = input(false);
+  /** Giá trị ban đầu của ô tìm kiếm, ví dụ lấy từ URL */
+  readonly searchValue = input('');
+  readonly scrollHeight = input('');
+  /** Trả về class CSS cho từng dòng */
+  readonly rowClassFn = input<(item: T) => string>();
 
-  // --- CONFIG INPUTS ---
-  loading = input(false);
-  selectable = input(false);
-  searchable = input(false);
-  activeItem = model<T | null>(null);
+  // --- PHÂN TRANG VÀ SẮP XẾP ---
+  readonly pagination = input(false);
+  /** true: component cha phân trang và sắp xếp qua API. false: bảng tự làm trên dữ liệu đang có. */
+  readonly serverSide = input(false);
+  readonly totalRecords = input(0);
+  readonly page = input(1);
+  readonly pageSize = input(10);
+  readonly sortKey = model('');
+  readonly sortDir = model<'asc' | 'desc'>('asc');
 
-  scrollHeight = input<string>('');
+  // --- SỰ KIỆN ---
+  readonly sortChange = output<{ key: string; direction: 'asc' | 'desc' }>();
+  readonly pageChange = output<PageEvent>();
+  readonly rowClick = output<T>();
+  readonly search = output<string>();
 
-  // --- PAGINATION CONFIG ---
-  pagination = input(false);
-  serverSide = input(false); // ✨ True = Server paging, False = Client paging
-  totalRecords = input(0); // Dùng cho Server Side
-  page = input(1);
-  pageSize = input(10);
+  protected readonly selectedSet = computed(() => new Set(this.selection()));
+  protected readonly selectedCount = computed(() => this.selection().length);
 
-  // --- OUTPUT EVENTS ---
-  sortChange = output<{ key: string; direction: 'asc' | 'desc' }>();
-  pageChange = output<PageEvent>();
-  rowClick = output<T>();
-  search = output<string>();
-
-  // --- INTERNAL STATE ---
-  sortKey = signal<string>('');
-  sortDir = signal<'asc' | 'desc'>('asc');
-
-  // --- COMPUTED LOGIC ---
-
-  // 1. Chuyển đổi Selection Model (Array) -> Set (để tra cứu O(1) trên UI)
-  selectedSet = computed(() => new Set(this.selection()));
-  selectedCount = computed(() => this.selection().length);
-
-  // 2. Logic Sắp xếp (Client-side)
-  sortedData = computed(() => {
-    const rawData = this.data();
+  private readonly sortedData = computed(() => {
+    const rows = this.data();
     const key = this.sortKey();
-    const dir = this.sortDir();
+    const direction = this.sortDir() === 'asc' ? 1 : -1;
 
-    // Nếu là Server-side hoặc chưa chọn cột sort -> Trả về data gốc
-    if (this.serverSide() || !key) return rawData;
+    if (this.serverSide() || !key) return rows;
 
-    // Clone mảng để sort (tránh mutate data gốc)
-    return [...rawData].sort((a, b) => {
-      const valueA = this.getCellValue(a, key);
-      const valueB = this.getCellValue(b, key);
+    return [...rows].sort((a, b) => {
+      const left = this.getCellValue(a, key);
+      const right = this.getCellValue(b, key);
 
-      // Xử lý null/undefined
-      if (valueA == null && valueB == null) return 0;
-      if (valueA == null) return 1;
-      if (valueB == null) return -1;
-
-      // So sánh
-      if (valueA < valueB) return dir === 'asc' ? -1 : 1;
-      if (valueA > valueB) return dir === 'asc' ? 1 : -1;
+      if (left == null && right == null) return 0;
+      if (left == null) return 1;
+      if (right == null) return -1;
+      if (left < right) return -direction;
+      if (left > right) return direction;
       return 0;
     });
   });
 
-  // 3. Tính toán tổng số dòng thực tế
-  effectiveTotalRecords = computed(() => (this.serverSide() ? this.totalRecords() : this.data().length));
+  protected readonly effectiveTotalRecords = computed(() =>
+    this.serverSide() ? this.totalRecords() : this.data().length,
+  );
 
-  // 4. Tính toán dữ liệu hiển thị (Pagination Slice)
-  paginatedData = computed(() => {
-    // 1. NẾU LÀ SERVER SIDE (Parent làm hết)
-    // Child trả về nguyên xi những gì Parent đưa (đã sort/slice sẵn)
+  protected readonly paginatedData = computed(() => {
     if (this.serverSide()) return this.data();
 
-    // 2. NẾU LÀ CLIENT SIDE (Child tự làm)
-    // Child tự lấy data gốc -> tự sort -> tự cắt slice
-    const processedData = this.sortedData();
     const start = (this.page() - 1) * this.pageSize();
-    return processedData.slice(start, start + this.pageSize());
+    return this.sortedData().slice(start, start + this.pageSize());
   });
 
-  // 5. Logic Total Columns
-  totalCols = computed(() => this.columns().length + (this.selectable() ? 1 : 0));
+  protected readonly totalCols = computed(() => this.columns().length + (this.selectable() ? 1 : 0));
 
-  // 6. Logic Select All State (Dựa trên data đang hiển thị)
-  isAllSelected = computed(() => {
-    const displayData = this.paginatedData();
-    const currentSet = this.selectedSet(); // Dùng Set đã computed
-    return displayData.length > 0 && displayData.every((item) => currentSet.has(item));
+  protected readonly isAllSelected = computed(() => {
+    const rows = this.paginatedData();
+    const selected = this.selectedSet();
+    return rows.length > 0 && rows.every((item) => selected.has(item));
   });
 
-  // 7. Logic trạng thái không xác định
-  isIndeterminate = computed(() => {
-    const displayData = this.paginatedData();
-    if (displayData.length === 0) return false;
-
-    const currentSet = this.selectedSet();
-    const count = displayData.filter((item) => currentSet.has(item)).length;
-    return count > 0 && count < displayData.length;
+  protected readonly isIndeterminate = computed(() => {
+    const rows = this.paginatedData();
+    const selected = this.selectedSet();
+    const count = rows.filter((item) => selected.has(item)).length;
+    return count > 0 && count < rows.length;
   });
 
-  // --- METHODS ---
-
-  trackByFn(index: number, item: any) {
-    return item.id || index;
+  protected trackByFn(index: number, item: T): unknown {
+    return (item as { id?: unknown }).id ?? index;
   }
 
-  getCellValue(item: T, key: string | keyof T): any {
-    if (typeof key === 'string' && key.includes('.')) {
-      return key.split('.').reduce((obj: any, k) => obj?.[k], item);
-    }
-    return (item as any)[key];
+  // Trả về any có chủ ý: giá trị đi vào các pipe date, currency, number trong template, kiểu tuỳ theo từng cột
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  protected getCellValue(item: T, key: keyof T | string): any {
+    return String(key)
+      .split('.')
+      .reduce<unknown>((value, part) => (value as Record<string, unknown> | null | undefined)?.[part], item);
   }
 
-  // Hàm này sẽ nhận vào 1 dòng data (item) và trả về một chuỗi class CSS (string).
-  rowClassFn = input<(item: any) => string | string[] | Set<string> | Record<string, any>>();
+  protected toggleSelection(item: T): void {
+    this.selection.update((current) =>
+      current.includes(item) ? current.filter((selected) => selected !== item) : [...current, item],
+    );
+  }
 
-  // --- SELECTION ACTIONS (Logic mới gọn hơn) ---
+  protected toggleSelectAll(): void {
+    const rows = this.paginatedData();
+    const selectAll = !this.isAllSelected();
 
-  toggleSelection(item: T) {
     this.selection.update((current) => {
-      // Nếu đã có -> Lọc bỏ (Bỏ chọn)
-      if (current.includes(item)) {
-        return current.filter((x) => x !== item); // Note: So sánh reference object
-      }
-      // Nếu chưa có -> Thêm vào
-      return [...current, item];
+      const selected = new Set(current);
+      rows.forEach((item) => (selectAll ? selected.add(item) : selected.delete(item)));
+      return Array.from(selected);
     });
   }
 
-  toggleSelectAll() {
-    const displayData = this.paginatedData();
-    const isAll = this.isAllSelected();
-
-    this.selection.update((current) => {
-      const currentSet = new Set(current);
-
-      if (isAll) {
-        // Bỏ chọn tất cả item đang hiển thị
-        displayData.forEach((item) => currentSet.delete(item));
-      } else {
-        // Chọn tất cả item đang hiển thị
-        displayData.forEach((item) => currentSet.add(item));
-      }
-      return Array.from(currentSet);
-    });
-  }
-
-  isSelected(item: T): boolean {
+  protected isSelected(item: T): boolean {
     return this.selectedSet().has(item);
   }
 
-  // --- OTHER ACTIONS ---
-
-  // PAGING ACTION
-  changePage(newPage: number) {
-    // Emit ra ngoài để cha xử lý (gọi API hoặc đổi state page)
-    this.pageChange.emit({ page: newPage, pageSize: this.pageSize() });
+  protected changePage(page: number): void {
+    this.pageChange.emit({ page, pageSize: this.pageSize() });
   }
 
-  handleSort(col: TableColumn<T>) {
-    if (!col.sortable) return;
-    const newDir = this.sortKey() === col.key && this.sortDir() === 'asc' ? 'desc' : 'asc';
-    this.sortKey.set(col.key as string);
-    this.sortDir.set(newDir);
-    this.sortChange.emit({ key: col.key as string, direction: newDir });
+  protected handleSort(column: TableColumn<T>): void {
+    if (!column.sortable) return;
+
+    const key = String(column.key);
+    const direction = this.sortKey() === key && this.sortDir() === 'asc' ? 'desc' : 'asc';
+    this.sortKey.set(key);
+    this.sortDir.set(direction);
+    this.sortChange.emit({ key, direction });
   }
 
-  onRowClick(item: T) {
+  protected onRowClick(item: T): void {
     this.activeItem.set(item);
     this.rowClick.emit(item);
   }
 
-  onSearch(event: Event) {
+  protected onSearch(event: Event): void {
     this.search.emit((event.target as HTMLInputElement).value);
   }
 }

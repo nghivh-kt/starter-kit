@@ -13,6 +13,10 @@ namespace API.Models.DTOs
         public bool IsActive { get; set; }
         public DateTime CreatedAt { get; set; }
         public DateTime? UpdatedAt { get; set; }
+        /// <summary>
+        /// Phiên bản của bản ghi. Gửi lại nguyên giá trị này khi PUT để phát hiện bản ghi đã bị người khác sửa.
+        /// </summary>
+        public byte[] RowVersion { get; set; } = null!;
     }
 
     /// <summary>
@@ -39,6 +43,10 @@ namespace API.Models.DTOs
         /// Không gửi (null) nghĩa là giữ nguyên trạng thái, tránh client thiếu field vô tình tắt danh mục
         /// </summary>
         public bool? IsActive { get; set; }
+        /// <summary>
+        /// RowVersion nhận được lúc đọc bản ghi
+        /// </summary>
+        public byte[] RowVersion { get; set; } = [];
     }
 
     /// <summary>

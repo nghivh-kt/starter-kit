@@ -82,6 +82,11 @@ namespace API.Services.Implementations
             // UpdatedAt do EFDbContext tự gán
             var category = await FindTrackedAsync(id, ct);
 
+            // Client đang sửa trên dữ liệu cũ. Trường hợp người khác lưu ngay sau dòng này thì EF phát hiện lúc UPDATE
+            // và GlobalExceptionHandler cũng trả 409.
+            if (!category.RowVersion.SequenceEqual(request.RowVersion))
+                throw new ConflictException("Danh mục đã được người khác cập nhật. Vui lòng tải lại rồi thử lại.");
+
             await EnsureNameIsUniqueAsync(request.Name, excludeId: id, ct);
 
             // Gán tay từng trường được phép sửa (không dùng Mapper): rõ ràng, không lỡ ghi đè cột ngoài ý muốn

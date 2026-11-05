@@ -2,52 +2,39 @@ import { TemplateRef } from '@angular/core';
 
 /**
  * Cấu hình cho một cột trong bảng
- * T = Kiểu dữ liệu của dòng (ví dụ: User, Product...)
+ * T = Kiểu dữ liệu của dòng
  */
-export interface TableColumn<T = any> {
-  /** Tên hiển thị trên Header (vd: "Full Name") */
+export interface TableColumn<T = unknown> {
+  /** Tên hiển thị trên Header */
   header: string;
 
-  /** * Tên property trong data để lấy dữ liệu (vd: "fullName", "user.role.name")
-   * Nếu dùng template thì key này chủ yếu để sort hoặc track
+  /**
+   * Tên property trong data để lấy dữ liệu (vd: "fullName", "user.role.name").
+   * Với cột sortable, đây cũng là giá trị sortBy gửi lên API.
    */
   key: keyof T | string;
 
-  /** (Optional) Custom template cho nội dung cột (Avatar, Badge, Button...) */
-  template?: TemplateRef<any>;
+  /** Custom template cho nội dung cột (Badge, Button...) */
+  template?: TemplateRef<unknown> | null;
 
-  /** (Optional) Độ rộng cột theo Tailwind (vd: 'w-20', 'w-1/4', 'min-w-[200px]') */
+  /** Độ rộng cột (vd: '100px') */
   width?: string;
 
-  /** (Optional) Class CSS áp dụng cho cả Header và Cell (vd: 'text-right' cho cột tiền, 'text-center') */
+  /** Class CSS áp dụng cho cả Header và Cell (vd: 'text-right') */
   className?: string;
 
-  /** (Optional) Có hiện mũi tên sắp xếp không? */
+  /** Có cho sắp xếp theo cột này không */
   sortable?: boolean;
 
-  /** (Optional) Thêm format */
   type?: 'text' | 'date' | 'currency' | 'number';
   format?: string;
 }
 
-/**
- * Sự kiện khi thay đổi trang (Pagination)
- */
+/** Sự kiện khi thay đổi trang */
 export interface PageEvent {
   /** Trang hiện tại (bắt đầu từ 1) */
   page: number;
 
   /** Số dòng trên một trang */
   pageSize: number;
-}
-
-/**
- * (Optional) Interface cho nút hành động nếu muốn config cứng thay vì dùng Template
- * Thường dùng cho các bảng đơn giản.
- */
-export interface TableAction<T = any> {
-  label: string;
-  icon?: string;
-  onClick: (item: T) => void;
-  variant?: 'primary' | 'danger' | 'ghost' | 'outline';
 }

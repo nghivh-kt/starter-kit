@@ -1,0 +1,55 @@
+<div class="flex flex-col h-full bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+  <div class="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
+    <h1 class="text-xl font-bold text-gray-900 tracking-tight">Quản lý người dùng</h1>
+    <app-button (click)="openForm(null)">Thêm mới</app-button>
+  </div>
+
+  <div class="flex-1 overflow-hidden relative">
+    <app-table
+      [data]="items()"
+      [columns]="columns()"
+      [loading]="list.isLoading()"
+      [searchable]="true"
+      [searchValue]="search()"
+      [pagination]="true"
+      [serverSide]="true"
+      [page]="page()"
+      [pageSize]="pageSize"
+      [totalRecords]="total()"
+      [sortKey]="sortBy()"
+      [sortDir]="desc() ? 'desc' : 'asc'"
+      (search)="navigation.search($event)"
+      (pageChange)="navigation.goToPage($event.page)"
+      (sortChange)="navigation.sort($event)"
+    />
+  </div>
+</div>
+
+<ng-template #statusTemplate let-user>
+  <app-badge [variant]="user.isActive ? 'success' : 'danger'">
+    {{ user.isActive ? 'Hoạt động' : 'Đã khoá' }}
+  </app-badge>
+</ng-template>
+
+<ng-template #actionTemplate let-user>
+  <div class="flex gap-2">
+    <app-button variant="outline" size="sm" (click)="openForm(user)">Sửa</app-button>
+    <app-button variant="outline" size="sm" (click)="resetting.set(user)">Đặt lại mật khẩu</app-button>
+  </div>
+</ng-template>
+
+@if (isFormOpen()) {
+  <app-modal
+    [isOpen]="true"
+    [title]="editing() ? 'Cập nhật người dùng' : 'Thêm mới người dùng'"
+    (close)="isFormOpen.set(false)"
+  >
+    <app-user-form [user]="editing()" (saved)="onSaved()" (cancelled)="isFormOpen.set(false)" />
+  </app-modal>
+}
+
+@if (resetting(); as user) {
+  <app-modal [isOpen]="true" title="Đặt lại mật khẩu" (close)="resetting.set(null)">
+    <app-user-reset-password [user]="user" (saved)="resetting.set(null)" (cancelled)="resetting.set(null)" />
+  </app-modal>
+}

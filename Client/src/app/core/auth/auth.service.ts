@@ -16,7 +16,7 @@ import {
   throwError,
   timeout,
 } from 'rxjs';
-import { AuthResponse, CurrentUserResponse } from '@core/api';
+import { AuthResponse, ChangePasswordRequest, CurrentUserResponse } from '@core/api';
 import { ApiHttpService } from '@core/http/api-http.service';
 import { BACKGROUND_REQUEST } from '@core/http/http-context';
 import { ToastService } from '@core/services/toast.service';
@@ -90,14 +90,19 @@ export class AuthService {
   logout(): void {
     this.api
       .post<void>('/auth/logout', null, { context: backgroundContext() })
-      .pipe(
-        finalize(() => {
-          this.clearSession();
-          this.channel?.postMessage(LOGOUT_MESSAGE);
-          this.router.navigateByUrl('/auth/login');
-        }),
-      )
+      .pipe(finalize(() => this.endSession()))
       .subscribe({ error: () => undefined });
+  }
+
+  /** Đổi mật khẩu thành công thì API thu hồi mọi phiên, nên client đăng xuất luôn. */
+  changePassword(request: ChangePasswordRequest): Observable<void> {
+    return this.api.post<void>('/auth/change-password', request).pipe(tap(() => this.endSession()));
+  }
+
+  private endSession(): void {
+    this.clearSession();
+    this.channel?.postMessage(LOGOUT_MESSAGE);
+    this.router.navigateByUrl('/auth/login');
   }
 
   /**

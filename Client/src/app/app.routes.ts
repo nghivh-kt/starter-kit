@@ -1,5 +1,5 @@
 import { Routes } from '@angular/router';
-import { authGuard, publicGuard, roleGuard } from '@core/auth/auth.guards';
+import { authGuard, publicGuard } from '@core/auth/auth.guards';
 
 export const routes: Routes = [
   // --- PUBLIC ROUTES ---
@@ -21,15 +21,17 @@ export const routes: Routes = [
         loadComponent: () => import('./features/home/home.component').then((m) => m.HomeComponent),
       },
       {
-        path: 'user',
-        canActivate: [roleGuard],
-        data: { roles: ['Admin'] },
-        loadComponent: () => import('./features/user/user-list/user-list.component').then((m) => m.UserListComponent),
+        path: 'account/password',
+        loadComponent: () =>
+          import('./features/auth/change-password/change-password.component').then((m) => m.ChangePasswordComponent),
       },
       {
-        path: 'category',
-        loadComponent: () =>
-          import('./features/category/category-list/category-list.component').then((m) => m.CategoryListComponent),
+        path: 'users',
+        loadChildren: () => import('./features/users/users.routes').then((m) => m.USER_ROUTES),
+      },
+      {
+        path: 'categories',
+        loadChildren: () => import('./features/categories/categories.routes').then((m) => m.CATEGORY_ROUTES),
       },
       {
         path: '**',

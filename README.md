@@ -98,6 +98,21 @@ ASPNETCORE_ENVIRONMENT=Development dotnet ef migrations add AddXxx -o Data/Migra
 ASPNETCORE_ENVIRONMENT=Development dotnet ef database update
 ```
 
+Route viết thường (`[Route("api/xxx")]`), và khai báo mọi response bằng `[ProducesResponseType]`: đây là nguồn sinh kiểu TypeScript cho Client.
+
+Phần Client: chạy `npm run api:gen` trong `Client/` để có kiểu mới, rồi copy thư mục `Client/src/app/features/categories` và đổi tên:
+
+| File mẫu | Việc cần làm |
+|---|---|
+| `src/app/core/api/index.ts` | Thêm tên ngắn cho kiểu mới (`XxxResponse`, `XxxPage`...) |
+| `features/categories/category.service.ts` | Gọi API |
+| `features/categories/category-list/` | Bảng, cột, quyền. Trang, tìm kiếm, sắp xếp nằm trên URL |
+| `features/categories/category-form/` | Field và validator, khớp với validator của API |
+| `features/categories/categories.routes.ts` | Khai báo route; thêm `roleGuard` nếu giới hạn vai trò |
+| `src/app/app.routes.ts`, `layout/sidebar` | Thêm route và mục menu |
+
+**Chống ghi đè lẫn nhau:** entity kế thừa `AuditableEntity` có `RowVersion`. Trả nó trong `XxxResponse`, nhận lại trong `XxxUpdateRequest`, rồi so sánh trong service như `CategoryService.UpdateAsync`. Hai người cùng sửa thì người lưu sau nhận 409; form Client báo lỗi và tải lại danh sách.
+
 ## Quy ước
 
 - **Lỗi nghiệp vụ**: không tự trả `BadRequest(...)`/`NotFound(...)` trong controller, mà ném exception từ service.

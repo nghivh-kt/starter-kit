@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { RouterModule } from '@angular/router';
 import { AuthService } from '@core/auth/auth.service';
+import { Roles } from '@core/auth/roles';
 import { LayoutService } from '@core/services/layout.service';
 
 // Định nghĩa cấu trúc 1 item trong menu
@@ -34,8 +35,8 @@ export class SidebarComponent {
   // Mảng chứa cấu trúc Menu
   private allMenuItems: MenuItem[] = [
     { label: 'Trang chủ', icon: '🏠', link: '/' },
-    { label: 'Người dùng', icon: '👤', link: '/user', roles: ['Admin'] },
-    { label: 'Danh mục', icon: '🗂️', link: '/category' },
+    { label: 'Người dùng', icon: '👤', link: '/users', roles: [Roles.Admin] },
+    { label: 'Danh mục', icon: '🗂️', link: '/categories' },
   ];
 
   // Lọc theo signal: menu tự cập nhật khi thông tin user thay đổi

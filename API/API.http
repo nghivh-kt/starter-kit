@@ -95,7 +95,8 @@ Content-Type: application/json
 {
   "name": "Danh mục thử (đã sửa)",
   "description": "Cập nhật từ API.http",
-  "isActive": true
+  "isActive": true,
+  "rowVersion": "{{createCategory.response.body.$.rowVersion}}"
 }
 
 ###

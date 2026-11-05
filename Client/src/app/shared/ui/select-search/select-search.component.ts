@@ -300,7 +300,7 @@ export class SelectSearchComponent<T = unknown> implements ControlValueAccessor 
     if (customError) return customError;
     const serverError = this.state.errors()?.['server'];
     if (serverError) return serverError;
-    return this.state.errors()?.['required'] ? `${this.label() || 'This field'} is required` : 'Invalid value';
+    return this.state.errors()?.['required'] ? `${this.label() || 'Trường này'} là bắt buộc` : 'Invalid value';
   });
 
   private readonly search$ = new Subject<string>();

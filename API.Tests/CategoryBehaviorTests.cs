@@ -43,13 +43,60 @@ public sealed class CategoryBehaviorTests(ApiFixture fixture)
         var category = await client.CreateCategoryAsync();
         var newName = ApiTestHelpers.UniqueName("cat");
 
-        var response = await client.PutAsJsonAsync($"/api/categories/{category.Id}", new CategoryUpdateRequest { Name = newName });
+        var response = await client.PutAsJsonAsync($"/api/categories/{category.Id}", new CategoryUpdateRequest { Name = newName, RowVersion = category.RowVersion });
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         var updated = await response.Content.ReadFromJsonAsync<CategoryResponse>();
         Assert.Equal(newName, updated!.Name);
         Assert.True(updated.IsActive);
         Assert.NotNull(updated.UpdatedAt);
+    }
+
+    [Fact]
+    public async Task Update_WithStaleRowVersion_Returns409_AndKeepsTheOtherUsersChange()
+    {
+        var client = await AdminClientAsync();
+        var category = await client.CreateCategoryAsync();
+        var firstName = ApiTestHelpers.UniqueName("first");
+
+        var first = await client.PutAsJsonAsync($"/api/categories/{category.Id}", new CategoryUpdateRequest { Name = firstName, RowVersion = category.RowVersion });
+        Assert.Equal(HttpStatusCode.OK, first.StatusCode);
+
+        // Người thứ hai vẫn giữ RowVersion cũ
+        var second = await client.PutAsJsonAsync($"/api/categories/{category.Id}", new CategoryUpdateRequest { Name = ApiTestHelpers.UniqueName("second"), RowVersion = category.RowVersion });
+
+        Assert.Equal(HttpStatusCode.Conflict, second.StatusCode);
+        Assert.Equal("CONFLICT", (await second.ReadProblemAsync()).GetProperty("code").GetString());
+
+        var current = await client.GetFromJsonAsync<CategoryResponse>($"/api/categories/{category.Id}");
+        Assert.Equal(firstName, current!.Name);
+    }
+
+    [Fact]
+    public async Task Update_WithNewRowVersion_Succeeds()
+    {
+        var client = await AdminClientAsync();
+        var category = await client.CreateCategoryAsync();
+
+        var first = await client.PutAsJsonAsync($"/api/categories/{category.Id}", new CategoryUpdateRequest { Name = ApiTestHelpers.UniqueName("a"), RowVersion = category.RowVersion });
+        var updated = await first.Content.ReadFromJsonAsync<CategoryResponse>();
+        Assert.False(updated!.RowVersion.SequenceEqual(category.RowVersion));
+
+        var second = await client.PutAsJsonAsync($"/api/categories/{category.Id}", new CategoryUpdateRequest { Name = ApiTestHelpers.UniqueName("b"), RowVersion = updated.RowVersion });
+
+        Assert.Equal(HttpStatusCode.OK, second.StatusCode);
+    }
+
+    [Fact]
+    public async Task Update_WithoutRowVersion_Returns400()
+    {
+        var client = await AdminClientAsync();
+        var category = await client.CreateCategoryAsync();
+
+        var response = await client.PutAsJsonAsync($"/api/categories/{category.Id}", new CategoryUpdateRequest { Name = ApiTestHelpers.UniqueName("a") });
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        Assert.True((await response.ReadProblemAsync()).GetProperty("errors").TryGetProperty("rowVersion", out _));
     }
 
     [Theory]

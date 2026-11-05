@@ -19,12 +19,12 @@ module.exports = defineConfig([
       "@angular-eslint/directive-selector": ["error", { type: "attribute", prefix: "app", style: "camelCase" }],
       "@angular-eslint/component-selector": ["error", { type: "element", prefix: "app", style: "kebab-case" }],
       "@angular-eslint/prefer-on-push-component-change-detection": "error",
-      "no-console": ["warn", { allow: ["error"] }],
+      "no-console": ["error", { allow: ["error"] }],
       // Cho phép callback rỗng mặc định của ControlValueAccessor: onChange = () => {}
       "@typescript-eslint/no-empty-function": ["error", { allow: ["arrowFunctions"] }],
-      // Tạm ở mức warn: code cũ sẽ được viết lại ở các giai đoạn sau, khi đó nâng lên error
-      "@typescript-eslint/no-explicit-any": "warn",
-      "@typescript-eslint/no-unused-vars": "warn",
+      // Tạm ở mức warn: được đổi tên ở giai đoạn accessibility
+      "@typescript-eslint/no-explicit-any": "error",
+      "@typescript-eslint/no-unused-vars": "error",
       "@angular-eslint/no-output-native": "warn",
     },
   },

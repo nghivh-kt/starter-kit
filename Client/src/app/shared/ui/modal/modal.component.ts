@@ -81,7 +81,7 @@ export class ModalComponent {
 
   // --- COMPUTED CLASS ---
   get maxWidthClass() {
-    const sizes: any = {
+    const sizes: Record<string, string> = {
       sm: 'sm:max-w-sm',
       md: 'sm:max-w-md',
       lg: 'sm:max-w-lg',
