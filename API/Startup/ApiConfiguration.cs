@@ -2,8 +2,10 @@ using API.Common.Exceptions;
 using API.Common.Filters;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.HttpOverrides;
+using Microsoft.AspNetCore.Mvc;
 using System.Diagnostics;
 using System.Net;
+using System.Net.Mime;
 using System.Text.Json;
 
 namespace API.Startup
@@ -26,6 +28,12 @@ namespace API.Startup
                     // ("The X field is required.") trước khi FluentValidation kịp chạy.
                     // => Mọi field string bắt buộc của request PHẢI có rule NotEmpty() trong validator.
                     o.SuppressImplicitRequiredAttributeForNonNullableReferenceTypes = true;
+
+                    // Tài liệu OpenAPI: các lỗi mọi endpoint đều có thể trả. Lỗi riêng (404, 409, 429) khai báo trên từng action.
+                    o.Filters.Add(new ProducesResponseTypeAttribute(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest, MediaTypeNames.Application.ProblemJson));
+                    o.Filters.Add(new ProducesResponseTypeAttribute(typeof(ProblemDetails), StatusCodes.Status401Unauthorized, MediaTypeNames.Application.ProblemJson));
+                    o.Filters.Add(new ProducesResponseTypeAttribute(typeof(ProblemDetails), StatusCodes.Status403Forbidden, MediaTypeNames.Application.ProblemJson));
+                    o.Filters.Add(new ProducesResponseTypeAttribute(typeof(ProblemDetails), StatusCodes.Status500InternalServerError, MediaTypeNames.Application.ProblemJson));
                 })
                 .AddJsonOptions(o =>
                 {

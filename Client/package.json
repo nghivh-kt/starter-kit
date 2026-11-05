@@ -8,6 +8,7 @@
     "watch": "ng build --watch --configuration development",
     "test": "ng test --watch=false",
     "lint": "ng lint",
+    "api:gen": "node scripts/generate-api.mjs",
     "format": "prettier --write src"
   },
   "prettier": {

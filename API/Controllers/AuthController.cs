@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.Extensions.Options;
+using System.Net.Mime;
 
 namespace API.Controllers
 {
@@ -34,7 +35,9 @@ namespace API.Controllers
         [AllowAnonymous]
         [EnableRateLimiting(RateLimitPolicies.Login)]
         [HttpPost("login")]
-        public async Task<IActionResult> Login([FromBody] LoginRequest rq, CancellationToken ct)
+        [ProducesResponseType<AuthResponse>(StatusCodes.Status200OK)]
+        [ProducesResponseType<ProblemDetails>(StatusCodes.Status429TooManyRequests, MediaTypeNames.Application.ProblemJson)]
+        public async Task<ActionResult<AuthResponse>> Login([FromBody] LoginRequest rq, CancellationToken ct)
         {
             var result = await _authService.LoginAsync(rq.UserName, rq.Password, _userContext.IpAddress, ct);
 
@@ -47,7 +50,9 @@ namespace API.Controllers
         [AllowAnonymous]
         [EnableRateLimiting(RateLimitPolicies.Refresh)]
         [HttpPost("refresh")]
-        public async Task<IActionResult> Refresh([FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Allow)] RefreshTokenRequest? rq, CancellationToken ct)
+        [ProducesResponseType<AuthResponse>(StatusCodes.Status200OK)]
+        [ProducesResponseType<ProblemDetails>(StatusCodes.Status429TooManyRequests, MediaTypeNames.Application.ProblemJson)]
+        public async Task<ActionResult<AuthResponse>> Refresh([FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Allow)] RefreshTokenRequest? rq, CancellationToken ct)
         {
             EnsureTrustedOrigin();
 
@@ -67,6 +72,7 @@ namespace API.Controllers
         // LOGOUT
         [AllowAnonymous]
         [HttpPost("logout")]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
         public async Task<IActionResult> Logout([FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Allow)] LogoutRequest? rq)
         {
             EnsureTrustedOrigin();
@@ -87,6 +93,7 @@ namespace API.Controllers
         // LOGOUT ALL — đăng xuất mọi thiết bị của user hiện tại.
         [Authorize]
         [HttpPost("logout-all")]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
         public async Task<IActionResult> LogoutAll()
         {
             await _authService.LogoutAllAsync(CurrentUserId(), _userContext.IpAddress, CancellationToken.None);
@@ -99,6 +106,8 @@ namespace API.Controllers
         [Authorize]
         [EnableRateLimiting(RateLimitPolicies.Login)]
         [HttpPost("change-password")]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType<ProblemDetails>(StatusCodes.Status429TooManyRequests, MediaTypeNames.Application.ProblemJson)]
         public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordRequest rq, CancellationToken ct)
         {
             await _authService.ChangePasswordAsync(CurrentUserId(), rq, _userContext.IpAddress, ct);
@@ -110,7 +119,8 @@ namespace API.Controllers
         // CURRENT USER INFO
         [Authorize]
         [HttpGet("me")]
-        public async Task<IActionResult> Me(CancellationToken ct)
+        [ProducesResponseType<CurrentUserResponse>(StatusCodes.Status200OK)]
+        public async Task<ActionResult<CurrentUserResponse>> Me(CancellationToken ct)
         {
             var currentUser = await _authService.CurrentUserAsync(CurrentUserId(), ct)
                 ?? throw new UnauthorizedException("Tài khoản không tồn tại hoặc đã bị khóa");

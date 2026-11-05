@@ -55,6 +55,13 @@ namespace API.Startup
             var settings = scope.ServiceProvider.GetRequiredService<IOptions<AdminSeedSettings>>().Value;
             var logger = scope.ServiceProvider.GetRequiredService<ILoggerFactory>().CreateLogger(nameof(AdminSeedConfiguration));
 
+            // Không có mật khẩu thì không chạm vào database: công cụ như "dotnet swagger tofile" cũng chạy qua đoạn này
+            if (string.IsNullOrEmpty(settings.AdminPassword))
+            {
+                logger.LogInformation("Chưa cấu hình Seed:AdminPassword: bỏ qua bước tạo tài khoản quản trị. Nếu bảng Users đang rỗng thì chưa ai đăng nhập được.");
+                return;
+            }
+
             try
             {
                 if ((await db.Database.GetPendingMigrationsAsync()).Any())
@@ -65,12 +72,6 @@ namespace API.Startup
 
                 if (await db.Users.IgnoreQueryFilters().AnyAsync())
                     return;
-
-                if (string.IsNullOrEmpty(settings.AdminPassword))
-                {
-                    logger.LogWarning("Bảng Users đang rỗng và chưa cấu hình Seed:AdminPassword: chưa có tài khoản nào đăng nhập được.");
-                    return;
-                }
 
                 db.Users.Add(new User
                 {

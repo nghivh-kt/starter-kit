@@ -29,7 +29,7 @@ dotnet run --launch-profile http
 Swagger: http://localhost:5157/swagger · Health check: http://localhost:5157/health/ready
 
 **Tài khoản quản trị:** không có mật khẩu mặc định. Khi bảng `Users` còn rỗng và migration đã chạy xong, lần khởi động tiếp theo
-tạo user `admin` với mật khẩu lấy từ `Seed:AdminPassword`. Nếu chưa cấu hình, app chỉ ghi cảnh báo vào log và chưa có tài khoản nào đăng nhập được.
+tạo user `admin` với mật khẩu lấy từ `Seed:AdminPassword`. Nếu chưa cấu hình, app bỏ qua bước này, chỉ ghi 1 dòng vào log, và chưa có tài khoản nào đăng nhập được.
 Khi đã có user, đổi `Seed:AdminPassword` không còn tác dụng; đổi mật khẩu bằng `POST /api/auth/change-password`.
 
 Trên server, đặt cấu hình bằng biến môi trường thay cho user-secrets:

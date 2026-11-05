@@ -3,3 +3,4 @@ dist
 node_modules
 coverage
 package-lock.json
+src/app/core/api/schema.d.ts

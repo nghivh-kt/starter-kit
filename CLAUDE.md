@@ -25,6 +25,8 @@ dotnet ef migrations script --idempotent  # for production; the app never auto-m
 
 Tests live in `API.Tests` (xUnit, `WebApplicationFactory`, real SQL Server) and run with `dotnet test` from the repo root. Set `TEST_SQL_CONNECTION` (no Initial Catalog) to use an existing server; otherwise Testcontainers starts SQL Server and needs Docker in Linux containers mode. Stop any running `API.exe` first, because it locks the build output. There is no CI yet. `API/API.http` holds manual request samples. No password is seeded by migrations: `Startup/AdminSeedConfiguration.cs` creates user `admin` at startup when `Users` is empty and migrations are applied, using `Seed:AdminPassword`.
 
+After changing a controller or DTO, run `npm run api:gen` from `Client/` and commit the regenerated `API/openapi.json` and `Client/src/app/core/api/schema.d.ts`. Declare every response with `[ProducesResponseType]`, because those attributes are the source of the Client's types.
+
 ## Architecture
 
 - **Startup**: `Program.cs` only chains extension methods. Each concern lives in its own file under `Startup/` or `Common/Security/`. `PipelineConfiguration.cs` sets the middleware order, and that order is deliberate: ForwardedHeaders → request logging → exception handler/status code pages → CORS → rate limiter → authN → authZ. Options classes use `ValidateOnStart`, so invalid configuration fails at startup.
