@@ -204,6 +204,8 @@ Cấu hình thời hạn token và cookie trong `JwtSettings` / `RefreshTokenSet
 
 ## Triển khai (production)
 
+Triển khai lên IIS: xem [deploy/iis/README.md](deploy/iis/README.md).
+
 - Đặt `ASPNETCORE_ENVIRONMENT=Production` (mặc định) và cấu hình qua biến môi trường.
 - Ngoài Development ứng dụng bật **HSTS + HTTPS redirection**. Nếu TLS kết thúc ở reverse proxy (IIS/Nginx),
   khai báo IP proxy trong `ForwardedHeaders:KnownProxies`, hoặc dải mạng trong `ForwardedHeaders:KnownNetworks` (ví dụ `10.0.0.0/8`)

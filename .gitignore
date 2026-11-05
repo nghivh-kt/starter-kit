@@ -51,6 +51,7 @@ node_modules/
 
 # Build output (Thư mục build production)
 /dist
+/publish
 /out-tsc
 
 # Angular cache (Angular 13+ tạo ra thư mục này)
