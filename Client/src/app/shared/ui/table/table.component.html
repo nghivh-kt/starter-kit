@@ -133,7 +133,9 @@
     >
       <span class="text-sm text-gray-600">
         Showing
-        <span class="font-medium text-gray-900">{{ (page() - 1) * pageSize() + 1 }}</span>
+        <span class="font-medium text-gray-900">{{
+          effectiveTotalRecords() === 0 ? 0 : (page() - 1) * pageSize() + 1
+        }}</span>
         to
         <span class="font-medium text-gray-900">{{ Math.min(page() * pageSize(), effectiveTotalRecords()) }}</span>
         of

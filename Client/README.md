@@ -33,10 +33,32 @@ Mọi lỗi HTTP đến component đều là `ApiError` (`message`, `code`, `err
 ```bash
 npm run build   # bản production, xuất ra dist/
 npm test        # unit test bằng Vitest
+npm run e2e     # test trên trình duyệt với API và SQL Server thật (xem mục dưới)
 npm run lint    # ESLint, gồm quy tắc accessibility của template
 npm run format  # Prettier
 npm run api:gen # sinh lại kiểu TypeScript từ API
 ```
+
+## Test trên trình duyệt (E2E)
+
+Playwright chạy Client với API thật, kèm kiểm tra accessibility bằng axe. Lần đầu cần tải trình duyệt:
+
+```bash
+npx playwright install chromium
+```
+
+Sau đó đặt chuỗi kết nối SQL Server, **không có tên database**, rồi chạy:
+
+```powershell
+$env:TEST_SQL_CONNECTION = 'Server=localhost\SQLEXPRESS;Integrated Security=true;TrustServerCertificate=true'
+npm run e2e
+```
+
+- Lệnh tự xoá và tạo lại database `StarterKit_E2E`, tự chạy API và Client, rồi xoá database khi xong. Database dev không bị ảnh hưởng.
+- Phải tắt API và `ng serve` đang chạy trước: cổng 5157 hoặc 4200 đang bận thì lệnh báo lỗi, để không chạy nhầm trên môi trường dev.
+- Khi có test lỗi, xem ảnh chụp và trace bằng `npx playwright show-report`.
+
+Vitest kiểm tra logic từng phần; E2E kiểm tra những gì chỉ đúng khi ghép đủ trình duyệt, API và database: cookie, nhiều tab, phân quyền, xung đột dữ liệu. Thêm test E2E theo từng luồng người dùng, không lặp lại mọi trường hợp của Vitest.
 
 ## Kiểu dữ liệu từ API
 
