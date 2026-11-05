@@ -35,6 +35,8 @@ Mọi lỗi HTTP đến component đều là `ApiError` (`message`, `code`, `err
 - **Icon:** dùng [Lucide](https://lucide.dev/icons/), không dùng emoji. Import đúng icon cần dùng để bản build chỉ chứa các icon đó: `<svg lucidePlus aria-hidden="true" class="size-4"></svg>`.
 - **Font:** Inter tự host qua `@fontsource-variable/inter`, không tải từ Google Fonts. Trình duyệt chỉ tải phần chữ cần dùng.
 - **Thao tác trong bảng:** gom vào `app-menu` (nút "..."), truyền danh sách `MenuAction`.
+- **Phân trang:** `app-table` có sẵn thanh `« ‹ 1 2 3 › »` và chọn số dòng. Trang, số dòng, tìm kiếm, sắp xếp đều nằm trên URL.
+- **Xuất Excel:** đặt `[exportable]="true"`, bắt `(exportClick)` rồi gọi API. File do API tạo nên chứa mọi dòng khớp bộ lọc, không chỉ trang đang xem. Client không dùng thư viện Excel. Xem `exportExcel()` trong `features/categories`.
 - **Menu:** thêm module thì khai báo một dòng trong `core/navigation/navigation.ts`, menu bên trái và trang chủ tự cập nhật.
 
 ## Lệnh thường dùng

@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, input, model, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, input, linkedSignal, model, output } from '@angular/core';
 import { CurrencyPipe, DatePipe, DecimalPipe, NgClass, NgTemplateOutlet } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import {
@@ -6,11 +6,15 @@ import {
   LucideArrowUp,
   LucideChevronLeft,
   LucideChevronRight,
+  LucideChevronsLeft,
+  LucideChevronsRight,
   LucideChevronsUpDown,
+  LucideDownload,
   LucideSearch,
 } from '@lucide/angular';
 import { ButtonComponent } from '../button/button.component';
 import { CheckboxComponent } from '../checkbox/checkbox.component';
+import { PAGE_SIZE_OPTIONS, pageWindow } from './list-query';
 import { PageEvent, TableColumn } from './table.types';
 
 @Component({
@@ -28,14 +32,22 @@ import { PageEvent, TableColumn } from './table.types';
     LucideArrowUp,
     LucideChevronLeft,
     LucideChevronRight,
+    LucideChevronsLeft,
+    LucideChevronsRight,
     LucideChevronsUpDown,
+    LucideDownload,
     LucideSearch,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './table.component.html',
 })
 export class TableComponent<T = unknown> {
+  protected readonly Math = Math;
   protected readonly skeletonRows = [1, 2, 3, 4, 5];
+  protected readonly pagerButton =
+    'flex size-8 items-center justify-center rounded-full bg-hover text-[13px] font-medium text-ink transition-colors hover:bg-line ' +
+    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ' +
+    'disabled:cursor-not-allowed disabled:text-ink-subtle disabled:hover:bg-hover';
 
   // --- DỮ LIỆU ---
   readonly data = input<T[]>([]);
@@ -51,6 +63,9 @@ export class TableComponent<T = unknown> {
   /** Giá trị ban đầu của ô tìm kiếm, ví dụ lấy từ URL */
   readonly searchValue = input('');
   readonly scrollHeight = input('');
+  /** Hiện nút "Xuất Excel". Component cha gọi API khi nhận exportClick. */
+  readonly exportable = input(false);
+  readonly exporting = input(false);
   /** Trả về class CSS cho từng dòng */
   readonly rowClassFn = input<(item: T) => string>();
 
@@ -61,13 +76,16 @@ export class TableComponent<T = unknown> {
   readonly totalRecords = input(0);
   readonly page = input(1);
   readonly pageSize = input(10);
+  readonly pageSizeOptions = input(PAGE_SIZE_OPTIONS);
   readonly sortKey = model('');
   readonly sortDir = model<'asc' | 'desc'>('asc');
 
   // --- SỰ KIỆN ---
   readonly sortChange = output<{ key: string; direction: 'asc' | 'desc' }>();
   readonly pageChange = output<PageEvent>();
+  readonly pageSizeChange = output<number>();
   readonly searchChange = output<string>();
+  readonly exportClick = output<void>();
 
   protected readonly selectedSet = computed(() => new Set(this.selection()));
   protected readonly selectedCount = computed(() => this.selection().length);
@@ -92,9 +110,20 @@ export class TableComponent<T = unknown> {
     });
   });
 
+  // Giữ tổng số cũ trong lúc tải trang mới, để thanh phân trang không nhảy về trống rồi hiện lại
+  private readonly knownTotal = linkedSignal<{ total: number; loading: boolean }, number>({
+    source: () => ({ total: this.totalRecords(), loading: this.loading() }),
+    computation: ({ total, loading }, previous) => (loading && previous ? previous.value : total),
+  });
+
   protected readonly effectiveTotalRecords = computed(() =>
-    this.serverSide() ? this.totalRecords() : this.data().length,
+    this.serverSide() ? this.knownTotal() : this.data().length,
   );
+
+  protected readonly totalPages = computed(() =>
+    Math.max(1, Math.ceil(this.effectiveTotalRecords() / this.pageSize())),
+  );
+  protected readonly visiblePages = computed(() => pageWindow(this.page(), this.totalPages()));
 
   protected readonly paginatedData = computed(() => {
     if (this.serverSide()) return this.data();
@@ -156,6 +185,10 @@ export class TableComponent<T = unknown> {
 
   protected changePage(page: number): void {
     this.pageChange.emit({ page, pageSize: this.pageSize() });
+  }
+
+  protected onPageSizeChange(event: Event): void {
+    this.pageSizeChange.emit(Number((event.target as HTMLSelectElement).value));
   }
 
   protected handleSort(column: TableColumn<T>): void {

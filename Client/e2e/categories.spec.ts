@@ -1,7 +1,9 @@
+import { readFileSync } from 'node:fs';
 import { expect, Page, test } from '@playwright/test';
 import {
   admin,
   apiAs,
+  chooseAccountMenu,
   chooseRowAction,
   createCategories,
   createUser,
@@ -127,10 +129,10 @@ test.describe('Danh mục với quyền Admin', () => {
     await expect(dataRows(page)).toHaveCount(20);
 
     // Phân trang phía server: 25 dòng, trang 2 còn 5
-    await page.getByRole('button', { name: 'Sau' }).click();
+    await page.getByRole('button', { name: 'Trang sau' }).click();
     await expect(page).toHaveURL(/page=2/);
     await expect(dataRows(page)).toHaveCount(5);
-    await expect(page.getByRole('button', { name: 'Sau' })).toBeDisabled();
+    await expect(page.getByRole('button', { name: 'Trang sau' })).toBeDisabled();
 
     await page.reload();
     await expect(dataRows(page)).toHaveCount(5);
@@ -152,11 +154,90 @@ test.describe('Danh mục với quyền Admin', () => {
     await expect(dataRows(page).first()).toContainText(names[24]);
   });
 
+  test('thanh phân trang và số dòng: nằm trên URL, giữ khi F5, dùng được bằng bàn phím', async ({
+    page,
+    playwright,
+  }) => {
+    const prefix = uniqueName('Sodong');
+    await createCategories(
+      playwright,
+      Array.from({ length: 25 }, (_, i) => `${prefix} ${String(i + 1).padStart(2, '0')}`),
+    );
+    const pager = page.getByRole('navigation', { name: 'Phân trang' });
+    const current = pager.locator('[aria-current="page"]');
+
+    await page.goto(`/categories?search=${prefix}&pageSize=10`);
+    await expect(dataRows(page)).toHaveCount(10);
+    await expect(page.getByLabel('Số dòng')).toHaveValue('10');
+    await expect(page.getByText('Hiển thị 1–10 trong 25')).toBeVisible();
+    await expect(current).toHaveText('1');
+
+    // Bấm số trang, trang cuối, trang trước, trang đầu
+    await pager.getByRole('button', { name: 'Trang 2', exact: true }).click();
+    await expect(page).toHaveURL(/page=2/);
+    await expect(current).toHaveText('2');
+
+    await pager.getByRole('button', { name: 'Trang cuối' }).click();
+    await expect(page).toHaveURL(/page=3/);
+    await expect(dataRows(page)).toHaveCount(5);
+    await expect(pager.getByRole('button', { name: 'Trang sau' })).toBeDisabled();
+    await expect(page.getByText('Hiển thị 21–25 trong 25')).toBeVisible();
+
+    await page.reload();
+    await expect(dataRows(page)).toHaveCount(5);
+    await expect(current).toHaveText('3');
+    await expect(page.getByLabel('Số dòng')).toHaveValue('10');
+
+    await pager.getByRole('button', { name: 'Trang trước' }).focus();
+    await page.keyboard.press('Enter');
+    await expect(current).toHaveText('2');
+
+    await pager.getByRole('button', { name: 'Trang đầu' }).click();
+    await expect(current).toHaveText('1');
+    await expect(page).not.toHaveURL(/page=/);
+
+    // Đang ở trang sau mà đổi số dòng thì về trang 1
+    await pager.getByRole('button', { name: 'Trang 2', exact: true }).click();
+    await expect(page).toHaveURL(/page=2/);
+    await page.getByLabel('Số dòng').selectOption('50');
+    await expect(page).toHaveURL(/pageSize=50/);
+    await expect(page).not.toHaveURL(/[?&]page=/);
+    await expect(dataRows(page)).toHaveCount(25);
+    await expect(pager.getByRole('button', { name: 'Trang cuối' })).toBeDisabled();
+  });
+
+  test('xuất Excel tải về file thật theo đúng tên, kể cả với User chỉ có quyền đọc', async ({ page, playwright }) => {
+    const name = uniqueName('Xuat ');
+    await createCategories(playwright, [name]);
+
+    const expectDownload = async () => {
+      await page.goto(`/categories?search=${encodeURIComponent(name)}`);
+      await expect(row(page, name)).toBeVisible();
+
+      const [download] = await Promise.all([
+        page.waitForEvent('download'),
+        page.getByRole('button', { name: 'Xuất Excel' }).click(),
+      ]);
+      expect(download.suggestedFilename()).toMatch(/^danh-muc-\d{8}\.xlsx$/);
+
+      // File .xlsx là tệp zip: bắt đầu bằng "PK". Nội dung đã có test ở API.Tests/ExportTests.cs
+      const content = readFileSync(await download.path());
+      expect(content.subarray(0, 2).toString()).toBe('PK');
+      expect(content.length).toBeGreaterThan(1000);
+    };
+
+    await expectDownload();
+
+    await chooseAccountMenu(page, 'Đăng xuất');
+    await login(page, await createUser(playwright));
+    await expectDownload();
+  });
+
   test('từ khoá không có kết quả thì báo trống, số liệu phân trang không sai', async ({ page }) => {
     await page.goto(`/categories?search=${uniqueName('khong-co-')}`);
 
     await expect(page.getByText('Không có dữ liệu')).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Sau' })).toBeDisabled();
+    await expect(page.getByRole('button', { name: 'Trang sau' })).toBeDisabled();
     await expect(page.getByText('Không có mục nào')).toBeVisible();
   });
 });

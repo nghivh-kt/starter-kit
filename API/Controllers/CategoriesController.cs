@@ -31,6 +31,14 @@ namespace API.Controllers
             return Ok(await _categoryService.GetPagedAsync(query, ct));
         }
 
+        /// <summary>Mọi dòng khớp bộ lọc hiện tại dưới dạng file Excel, bỏ qua Page và PageSize.</summary>
+        [HttpGet("export")]
+        [ProducesResponseType(typeof(FileContentResult), StatusCodes.Status200OK, ExcelExporter.ContentType)]
+        public async Task<IActionResult> Export([FromQuery] CategoryQueryRequest query, CancellationToken ct)
+        {
+            return File(await _categoryService.ExportAsync(query, ct), ExcelExporter.ContentType, "danh-muc.xlsx");
+        }
+
         [HttpGet("{id:int}")]
         [ProducesResponseType<CategoryResponse>(StatusCodes.Status200OK)]
         [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)]

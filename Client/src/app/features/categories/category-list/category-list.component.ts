@@ -16,13 +16,20 @@ import { finalize } from 'rxjs';
 import { CategoryResponse } from '@core/api';
 import { AuthService } from '@core/auth/auth.service';
 import { Roles } from '@core/auth/roles';
+import { excelFileName, saveFile } from '@core/http/download';
 import { ToastService } from '@core/services/toast.service';
 import { BadgeComponent } from '@shared/ui/badge/badge.component';
 import { ButtonComponent } from '@shared/ui/button/button.component';
 import { MenuAction, MenuComponent } from '@shared/ui/menu/menu.component';
 import { ModalComponent } from '@shared/ui/modal/modal.component';
 import { PageHeaderComponent } from '@shared/ui/page-header/page-header.component';
-import { DEFAULT_PAGE_SIZE, injectListNavigation, pageAttribute, textAttribute } from '@shared/ui/table/list-query';
+import {
+  DEFAULT_PAGE_SIZE,
+  injectListNavigation,
+  pageAttribute,
+  pageSizeAttribute,
+  textAttribute,
+} from '@shared/ui/table/list-query';
 import { TableComponent } from '@shared/ui/table/table.component';
 import { TableColumn } from '@shared/ui/table/table.types';
 import { CategoryFormComponent } from '../category-form/category-form.component';
@@ -55,11 +62,11 @@ export class CategoryListComponent {
 
   // Query param trên URL, router tự truyền vào
   readonly page = input(1, { transform: pageAttribute });
+  readonly pageSize = input(DEFAULT_PAGE_SIZE, { transform: pageSizeAttribute });
   readonly search = input('', { transform: textAttribute });
   readonly sortBy = input('', { transform: textAttribute });
   readonly desc = input(false, { transform: booleanAttribute });
 
-  protected readonly pageSize = DEFAULT_PAGE_SIZE;
   protected readonly navigation = injectListNavigation();
   protected readonly canEdit = computed(() => this.auth.hasRole(Roles.Admin));
 
@@ -67,7 +74,7 @@ export class CategoryListComponent {
   protected readonly list = rxResource({
     params: () => ({
       page: this.page(),
-      pageSize: this.pageSize,
+      pageSize: this.pageSize(),
       search: this.search(),
       sortBy: this.sortBy(),
       desc: this.desc(),
@@ -90,6 +97,7 @@ export class CategoryListComponent {
       : []),
   ]);
 
+  protected readonly isExporting = signal(false);
   protected readonly isFormOpen = signal(false);
   protected readonly editing = signal<CategoryResponse | null>(null);
   protected readonly deleting = signal<CategoryResponse | null>(null);
@@ -100,6 +108,17 @@ export class CategoryListComponent {
       const error = this.list.error();
       if (error) this.toast.fromError(error);
     });
+  }
+
+  protected exportExcel(): void {
+    this.isExporting.set(true);
+    this.categories
+      .export({ search: this.search(), sortBy: this.sortBy(), desc: this.desc() })
+      .pipe(finalize(() => this.isExporting.set(false)))
+      .subscribe({
+        next: (file) => saveFile(file, excelFileName('danh-muc')),
+        error: (error: unknown) => this.toast.fromError(error),
+      });
   }
 
   protected rowActions(category: CategoryResponse): MenuAction[] {

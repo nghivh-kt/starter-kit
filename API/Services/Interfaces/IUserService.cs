@@ -6,6 +6,8 @@ namespace API.Services.Interfaces
     public interface IUserService
     {
         Task<PagedResult<UserResponse>> GetPagedAsync(UserQueryRequest query, CancellationToken ct);
+        /// <summary>File Excel chứa mọi dòng khớp bộ lọc, không phân trang.</summary>
+        Task<byte[]> ExportAsync(UserQueryRequest query, CancellationToken ct);
         Task<UserResponse> GetUserByIdAsync(int id, CancellationToken ct);
         Task<UserResponse> CreateAsync(UserCreateRequest request, CancellationToken ct);
         Task<UserResponse> UpdateAsync(int id, UserUpdateRequest request, CancellationToken ct);

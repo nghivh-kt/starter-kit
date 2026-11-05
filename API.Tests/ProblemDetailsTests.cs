@@ -154,6 +154,7 @@ public sealed partial class ProblemDetailsTests(ApiFixture fixture)
         }
 
         public Task<PagedResult<CategoryResponse>> GetPagedAsync(CategoryQueryRequest query, CancellationToken ct) => throw new NotSupportedException();
+        public Task<byte[]> ExportAsync(CategoryQueryRequest query, CancellationToken ct) => throw new NotSupportedException();
         public Task<CategoryResponse> CreateAsync(CategoryCreateRequest request, CancellationToken ct) => throw new NotSupportedException();
         public Task<CategoryResponse> UpdateAsync(int id, CategoryUpdateRequest request, CancellationToken ct) => throw new NotSupportedException();
         public Task DeleteAsync(int id, CancellationToken ct) => throw new NotSupportedException();

@@ -12,14 +12,22 @@ import {
 } from '@angular/core';
 import { rxResource } from '@angular/core/rxjs-interop';
 import { LucideKeyRound, LucidePencil, LucidePlus } from '@lucide/angular';
+import { finalize } from 'rxjs';
 import { UserResponse } from '@core/api';
+import { excelFileName, saveFile } from '@core/http/download';
 import { ToastService } from '@core/services/toast.service';
 import { BadgeComponent } from '@shared/ui/badge/badge.component';
 import { ButtonComponent } from '@shared/ui/button/button.component';
 import { MenuAction, MenuComponent } from '@shared/ui/menu/menu.component';
 import { ModalComponent } from '@shared/ui/modal/modal.component';
 import { PageHeaderComponent } from '@shared/ui/page-header/page-header.component';
-import { DEFAULT_PAGE_SIZE, injectListNavigation, pageAttribute, textAttribute } from '@shared/ui/table/list-query';
+import {
+  DEFAULT_PAGE_SIZE,
+  injectListNavigation,
+  pageAttribute,
+  pageSizeAttribute,
+  textAttribute,
+} from '@shared/ui/table/list-query';
 import { TableComponent } from '@shared/ui/table/table.component';
 import { TableColumn } from '@shared/ui/table/table.types';
 import { UserFormComponent } from '../user-form/user-form.component';
@@ -49,17 +57,17 @@ export class UserListComponent {
   private toast = inject(ToastService);
 
   readonly page = input(1, { transform: pageAttribute });
+  readonly pageSize = input(DEFAULT_PAGE_SIZE, { transform: pageSizeAttribute });
   readonly search = input('', { transform: textAttribute });
   readonly sortBy = input('', { transform: textAttribute });
   readonly desc = input(false, { transform: booleanAttribute });
 
-  protected readonly pageSize = DEFAULT_PAGE_SIZE;
   protected readonly navigation = injectListNavigation();
 
   protected readonly list = rxResource({
     params: () => ({
       page: this.page(),
-      pageSize: this.pageSize,
+      pageSize: this.pageSize(),
       search: this.search(),
       sortBy: this.sortBy(),
       desc: this.desc(),
@@ -83,6 +91,7 @@ export class UserListComponent {
     { key: 'actions', header: 'Thao tác', hideHeader: true, template: this.actionTemplate(), width: '56px' },
   ]);
 
+  protected readonly isExporting = signal(false);
   protected readonly isFormOpen = signal(false);
   protected readonly editing = signal<UserResponse | null>(null);
   protected readonly resetting = signal<UserResponse | null>(null);
@@ -92,6 +101,17 @@ export class UserListComponent {
       const error = this.list.error();
       if (error) this.toast.fromError(error);
     });
+  }
+
+  protected exportExcel(): void {
+    this.isExporting.set(true);
+    this.users
+      .export({ search: this.search(), sortBy: this.sortBy(), desc: this.desc() })
+      .pipe(finalize(() => this.isExporting.set(false)))
+      .subscribe({
+        next: (file) => saveFile(file, excelFileName('nguoi-dung')),
+        error: (error: unknown) => this.toast.fromError(error),
+      });
   }
 
   protected rowActions(user: UserResponse): MenuAction[] {

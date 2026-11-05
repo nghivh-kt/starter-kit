@@ -21,6 +21,11 @@ export class CategoryService {
     return this.api.get<CategoryPage>('/categories', { ...query });
   }
 
+  /** File Excel chứa mọi dòng khớp bộ lọc, không chỉ trang đang xem. */
+  export(query: Pick<CategoryQuery, 'search' | 'sortBy' | 'desc'>): Observable<Blob> {
+    return this.api.getBlob('/categories/export', { ...query });
+  }
+
   create(request: CategoryCreateRequest): Observable<CategoryResponse> {
     return this.api.post<CategoryResponse>('/categories', request);
   }

@@ -1,6 +1,6 @@
 import { HttpErrorResponse, HttpInterceptorFn } from '@angular/common/http';
 import { inject } from '@angular/core';
-import { catchError, throwError } from 'rxjs';
+import { catchError, from, of, switchMap, throwError } from 'rxjs';
 import { BACKGROUND_REQUEST } from '@core/http/http-context';
 import { ToastService } from '@core/services/toast.service';
 import { ApiError } from './api-error';
@@ -16,20 +16,42 @@ export const apiErrorInterceptor: HttpInterceptorFn = (req, next) => {
     catchError((error: unknown) => {
       if (!(error instanceof HttpErrorResponse)) return throwError(() => error);
 
-      const apiError = ApiError.fromResponse(error);
+      // Request tải file nhận lỗi dưới dạng Blob: phải đọc ra thì mới có thông báo của API
+      const response = error.error instanceof Blob ? from(withParsedBlob(error)) : of(error);
 
-      if (!req.context.get(BACKGROUND_REQUEST) && shouldNotify(apiError.status)) {
-        // Kèm traceId với lỗi 5xx: người dùng báo mã này để tra đúng dòng log phía server
-        const reference = apiError.status >= 500 && apiError.traceId ? ` (Mã tra cứu: ${apiError.traceId})` : '';
-        toast.error(`${apiError.message}${reference}`);
-        apiError.notified = true;
-      }
+      return response.pipe(
+        switchMap((parsed) => {
+          const apiError = ApiError.fromResponse(parsed);
 
-      return throwError(() => apiError);
+          if (!req.context.get(BACKGROUND_REQUEST) && shouldNotify(apiError.status)) {
+            // Kèm traceId với lỗi 5xx: người dùng báo mã này để tra đúng dòng log phía server
+            const reference = apiError.status >= 500 && apiError.traceId ? ` (Mã tra cứu: ${apiError.traceId})` : '';
+            toast.error(`${apiError.message}${reference}`);
+            apiError.notified = true;
+          }
+
+          return throwError(() => apiError);
+        }),
+      );
     }),
   );
 };
 
 function shouldNotify(status: number): boolean {
   return status === 0 || status === 403 || status === 429 || status >= 500;
+}
+
+async function withParsedBlob(response: HttpErrorResponse): Promise<HttpErrorResponse> {
+  let body: unknown = null;
+  try {
+    body = JSON.parse(await (response.error as Blob).text());
+  } catch {
+    // Không phải JSON, ví dụ trang lỗi của proxy: ApiError dùng thông báo mặc định theo mã lỗi
+  }
+  return new HttpErrorResponse({
+    error: body,
+    status: response.status,
+    statusText: response.statusText,
+    url: response.url ?? undefined,
+  });
 }

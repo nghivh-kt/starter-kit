@@ -23,20 +23,50 @@ namespace API.Services.Implementations
             ["createdAt"] = nameof(User.CreatedAt),
         };
 
+        // Cột trong file Excel. Lấy từ DTO, không từ entity: PasswordHash không thể lọt vào file
+        private static readonly ExcelColumn<UserResponse>[] ExportColumns =
+        [
+            new("Tên đăng nhập", x => x.UserName),
+            new("Họ và tên", x => x.FullName),
+            new("Email", x => x.Email),
+            new("Vai trò", x => x.Role == Roles.Admin ? "Quản trị" : "Người dùng"),
+            new("Trạng thái", x => x.IsActive ? "Hoạt động" : "Đã khoá"),
+            new("Ngày tạo", x => x.CreatedAt),
+        ];
+
         private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
         private readonly IUserContext _userContext;
         private readonly TimeProvider _timeProvider;
+        private readonly IExcelExporter _excel;
 
-        public UserService(IUnitOfWork unitOfWork, IMapper mapper, IUserContext userContext, TimeProvider timeProvider)
+        public UserService(IUnitOfWork unitOfWork, IMapper mapper, IUserContext userContext, TimeProvider timeProvider, IExcelExporter excel)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
             _userContext = userContext;
             _timeProvider = timeProvider;
+            _excel = excel;
         }
 
         public async Task<PagedResult<UserResponse>> GetPagedAsync(UserQueryRequest query, CancellationToken ct)
+        {
+            var (items, total) = await BuildListQuery(query).ToPagedListAsync(query.Page, query.PageSize, ct);
+
+            return new PagedResult<UserResponse>(_mapper.Map<List<UserResponse>>(items), total, query.Page, query.PageSize);
+        }
+
+        public async Task<byte[]> ExportAsync(UserQueryRequest query, CancellationToken ct)
+        {
+            var source = BuildListQuery(query);
+            _excel.EnsureWithinLimit(await source.CountAsync(ct));
+
+            var rows = _mapper.Map<List<UserResponse>>(await source.ToListAsync(ct));
+            return _excel.Create("Người dùng", ExportColumns, rows);
+        }
+
+        // Danh sách trên màn hình và file Excel dùng chung bộ lọc, nên luôn cho cùng một kết quả
+        private IQueryable<User> BuildListQuery(UserQueryRequest query)
         {
             var source = _unitOfWork.Repository<User>().Query(asNoTracking: true)
                 .ApplySearch(query.Search, x => x.UserName, x => x.FullName, x => x.Email)
@@ -45,11 +75,7 @@ namespace API.Services.Implementations
 
             // Chỉ cho phép sắp xếp theo các cột trong whitelist, mặc định Id
             var sortBy = query.SortBy != null && SortColumns.TryGetValue(query.SortBy, out var column) ? column : nameof(User.Id);
-            source = source.ApplySorting(sortBy, query.Desc);
-
-            var (items, total) = await source.ToPagedListAsync(query.Page, query.PageSize, ct);
-
-            return new PagedResult<UserResponse>(_mapper.Map<List<UserResponse>>(items), total, query.Page, query.PageSize);
+            return source.ApplySorting(sortBy, query.Desc);
         }
 
         public async Task<UserResponse> GetUserByIdAsync(int id, CancellationToken ct)

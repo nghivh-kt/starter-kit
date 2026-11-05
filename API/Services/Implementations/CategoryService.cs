@@ -24,16 +24,45 @@ namespace API.Services.Implementations
             ["createdAt"] = nameof(Category.CreatedAt),
         };
 
+        // Cột trong file Excel. Lấy từ DTO, không từ entity: field mới của entity không tự lộ ra file
+        private static readonly ExcelColumn<CategoryResponse>[] ExportColumns =
+        [
+            new("Tên danh mục", x => x.Name),
+            new("Diễn giải", x => x.Description),
+            new("Trạng thái", x => x.IsActive ? "Hoạt động" : "Tạm ngưng"),
+            new("Ngày tạo", x => x.CreatedAt),
+        ];
+
         private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
+        private readonly IExcelExporter _excel;
 
-        public CategoryService(IUnitOfWork unitOfWork, IMapper mapper)
+        public CategoryService(IUnitOfWork unitOfWork, IMapper mapper, IExcelExporter excel)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
+            _excel = excel;
         }
 
         public async Task<PagedResult<CategoryResponse>> GetPagedAsync(CategoryQueryRequest query, CancellationToken ct)
+        {
+            var (items, total) = await BuildListQuery(query).ToPagedListAsync(query.Page, query.PageSize, ct);
+
+            return new PagedResult<CategoryResponse>(
+                _mapper.Map<List<CategoryResponse>>(items), total, query.Page, query.PageSize);
+        }
+
+        public async Task<byte[]> ExportAsync(CategoryQueryRequest query, CancellationToken ct)
+        {
+            var source = BuildListQuery(query);
+            _excel.EnsureWithinLimit(await source.CountAsync(ct));
+
+            var rows = _mapper.Map<List<CategoryResponse>>(await source.ToListAsync(ct));
+            return _excel.Create("Danh mục", ExportColumns, rows);
+        }
+
+        // Danh sách trên màn hình và file Excel dùng chung bộ lọc, nên luôn cho cùng một kết quả
+        private IQueryable<Category> BuildListQuery(CategoryQueryRequest query)
         {
             // 1. Bản ghi đã xoá mềm tự động bị loại nhờ global query filter (EFDbContext)
             var source = _unitOfWork.Repository<Category>().Query(asNoTracking: true);
@@ -45,13 +74,7 @@ namespace API.Services.Implementations
 
             // 3. Sắp xếp theo whitelist, mặc định Id
             var sortBy = query.SortBy != null && SortColumns.TryGetValue(query.SortBy, out var column) ? column : nameof(Category.Id);
-            source = source.ApplySorting(sortBy, query.Desc);
-
-            // 4. Phân trang
-            var (items, total) = await source.ToPagedListAsync(query.Page, query.PageSize, ct);
-
-            return new PagedResult<CategoryResponse>(
-                _mapper.Map<List<CategoryResponse>>(items), total, query.Page, query.PageSize);
+            return source.ApplySorting(sortBy, query.Desc);
         }
 
         public async Task<CategoryResponse> GetByIdAsync(int id, CancellationToken ct)

@@ -46,6 +46,32 @@ describe('Lỗi từ API', () => {
     expect(error.traceId).toBe('abc');
   });
 
+  describe('request tải file, body lỗi là Blob', () => {
+    async function requestBlob(status: number, body: string): Promise<ApiError> {
+      let error: unknown;
+      http.get('/api/x', { responseType: 'blob' }).subscribe({ error: (e) => (error = e) });
+      mock.expectOne('/api/x').flush(new Blob([body]), { status, statusText: 'Lỗi' });
+      await vi.waitFor(() => expect(error).toBeDefined());
+      return error as ApiError;
+    }
+
+    it('đọc được thông báo Problem Details bên trong Blob', async () => {
+      const error = await requestBlob(400, JSON.stringify({ detail: 'Vượt giới hạn', code: 'BUSINESS_ERROR' }));
+
+      expect(error).toBeInstanceOf(ApiError);
+      expect(error.message).toBe('Vượt giới hạn');
+      expect(error.code).toBe('BUSINESS_ERROR');
+    });
+
+    it('Blob không phải JSON thì dùng thông báo mặc định, lỗi 5xx vẫn hiện toast', async () => {
+      const error = await requestBlob(500, '<html>Bad Gateway</html>');
+
+      expect(error.status).toBe(500);
+      expect(error.notified).toBe(true);
+      expect(toast.toasts()).toHaveLength(1);
+    });
+  });
+
   it('không có detail thì lấy lỗi field đầu tiên', () => {
     expect(request(400, { errors: { name: ['Tên là bắt buộc.'] } }).message).toBe('Tên là bắt buộc.');
   });

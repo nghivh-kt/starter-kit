@@ -21,6 +21,11 @@ export class UserService {
     return this.api.get<UserPage>('/users', { ...query });
   }
 
+  /** File Excel chứa mọi dòng khớp bộ lọc, không chỉ trang đang xem. */
+  export(query: Pick<UserQuery, 'search' | 'sortBy' | 'desc'>): Observable<Blob> {
+    return this.api.getBlob('/users/export', { ...query });
+  }
+
   create(request: UserCreateRequest): Observable<UserResponse> {
     return this.api.post<UserResponse>('/users', request);
   }
