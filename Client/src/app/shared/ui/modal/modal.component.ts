@@ -1,104 +1,109 @@
-import { Component, input, output, ChangeDetectionStrategy } from '@angular/core';
+import { A11yModule } from '@angular/cdk/a11y';
+import {
+  afterNextRender,
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  effect,
+  ElementRef,
+  inject,
+  Injector,
+  input,
+  OnDestroy,
+  output,
+  viewChild,
+} from '@angular/core';
+import { LucideX } from '@lucide/angular';
 
+const SIZES = { sm: 'max-w-sm', md: 'max-w-md', lg: 'max-w-lg', xl: 'max-w-xl', '2xl': 'max-w-2xl' };
+const FIRST_FIELD = 'input:not(:disabled), select:not(:disabled), textarea:not(:disabled)';
+
+let nextId = 0;
+
+/**
+ * Hộp thoại. Khi mở: focus vào ô nhập đầu tiên (không có thì vào hộp thoại) và giữ Tab bên trong.
+ * Khi đóng: trả focus về phần tử đã mở nó.
+ */
 @Component({
   selector: 'app-modal',
+  imports: [A11yModule, LucideX],
+  changeDetection: ChangeDetectionStrategy.OnPush,
   host: { '(document:keydown.escape)': 'onEscape()' },
-  standalone: true,
-  imports: [],
   template: `
     @if (isOpen()) {
-      <div class="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
-        <div class="fixed inset-0 bg-black/50 transition-opacity animate-fade-in" (click)="closeModal()"></div>
-        <div class="flex min-h-full items-center justify-center p-4 text-center sm:p-0">
+      <div class="fixed inset-0 z-50 overflow-y-auto">
+        <div class="fixed inset-0 bg-slate-900/45" aria-hidden="true" (click)="closed.emit()"></div>
+        <div class="flex min-h-full items-center justify-center p-4">
           <div
-            class="relative transform overflow-hidden rounded-lg bg-white text-left shadow-xl transition-all sm:my-8 w-full animate-scale-in"
-            [class]="maxWidthClass"
-            (click)="$event.stopPropagation()"
+            #panel
+            cdkTrapFocus
+            role="dialog"
+            aria-modal="true"
+            tabindex="-1"
+            [attr.aria-labelledby]="titleId"
+            class="relative w-full rounded-2xl bg-surface shadow-xl outline-none"
+            [class]="sizeClass()"
           >
-            <div class="bg-white px-4 py-3 sm:px-6 border-b border-gray-100 flex justify-between items-center">
-              <h3 class="text-lg font-semibold leading-6 text-gray-900" id="modal-title">
-                {{ title() }}
-              </h3>
-              <button type="button" class="text-gray-400 hover:text-gray-500 outline-none" (click)="closeModal()">
-                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
-                </svg>
+            <div class="flex items-center justify-between gap-3 border-b border-line px-5 py-4">
+              <h2 [id]="titleId" class="text-base font-semibold text-ink">{{ title() }}</h2>
+              <button
+                type="button"
+                aria-label="Đóng"
+                class="flex size-8 items-center justify-center rounded-lg text-ink-muted hover:bg-hover hover:text-ink
+                       focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                (click)="closed.emit()"
+              >
+                <svg lucideX aria-hidden="true" class="size-[18px]"></svg>
               </button>
             </div>
-            <div class="px-4 py-4 sm:p-6">
+            <div class="p-5">
               <ng-content />
-            </div>
-            <div class="bg-gray-50 px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6 gap-2">
-              <ng-content select="[modal-footer]" />
             </div>
           </div>
         </div>
       </div>
     }
   `,
-  changeDetection: ChangeDetectionStrategy.OnPush,
-  styles: [
-    `
-      /* Animation đơn giản */
-      .animate-fade-in {
-        animation: fadeIn 0.2s ease-out;
-      }
-      .animate-scale-in {
-        animation: scaleIn 0.2s ease-out;
-      }
-
-      @keyframes fadeIn {
-        from {
-          opacity: 0;
-        }
-        to {
-          opacity: 1;
-        }
-      }
-      @keyframes scaleIn {
-        from {
-          opacity: 0;
-          transform: scale(0.95);
-        }
-        to {
-          opacity: 1;
-          transform: scale(1);
-        }
-      }
-    `,
-  ],
 })
-export class ModalComponent {
-  // --- INPUTS ---
-  isOpen = input<boolean>(false);
-  title = input<string>('Modal Title');
+export class ModalComponent implements OnDestroy {
+  private readonly injector = inject(Injector);
+  private readonly panel = viewChild<ElementRef<HTMLElement>>('panel');
+  private opener: HTMLElement | null = null;
 
-  // Size modal: sm, md, lg, xl, 2xl...
-  size = input<'sm' | 'md' | 'lg' | 'xl' | '2xl' | 'full'>('md');
+  readonly isOpen = input(false);
+  readonly title = input.required<string>();
+  readonly size = input<keyof typeof SIZES>('md');
+  readonly closed = output<void>();
 
-  // --- OUTPUTS ---
-  close = output<void>();
+  protected readonly titleId = `modal-title-${nextId++}`;
+  protected readonly sizeClass = computed(() => SIZES[this.size()]);
 
-  // --- COMPUTED CLASS ---
-  get maxWidthClass() {
-    const sizes: Record<string, string> = {
-      sm: 'sm:max-w-sm',
-      md: 'sm:max-w-md',
-      lg: 'sm:max-w-lg',
-      xl: 'sm:max-w-xl',
-      '2xl': 'sm:max-w-2xl',
-      full: 'sm:max-w-full sm:m-4',
-    };
-    return sizes[this.size()] || sizes['md'];
+  constructor() {
+    effect(() => {
+      if (this.isOpen()) {
+        this.opener = document.activeElement as HTMLElement | null;
+        afterNextRender(() => this.focusInside(), { injector: this.injector });
+      } else {
+        this.restoreFocus();
+      }
+    });
   }
 
-  // --- ACTIONS ---
-  closeModal() {
-    this.close.emit();
+  ngOnDestroy(): void {
+    this.restoreFocus();
   }
-  onEscape() {
-    if (this.isOpen()) {
-      this.closeModal();
-    }
+
+  protected onEscape(): void {
+    if (this.isOpen()) this.closed.emit();
+  }
+
+  private focusInside(): void {
+    const panel = this.panel()?.nativeElement;
+    (panel?.querySelector<HTMLElement>(FIRST_FIELD) ?? panel)?.focus();
+  }
+
+  private restoreFocus(): void {
+    this.opener?.focus();
+    this.opener = null;
   }
 }

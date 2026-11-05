@@ -11,6 +11,7 @@ import {
   viewChild,
 } from '@angular/core';
 import { rxResource } from '@angular/core/rxjs-interop';
+import { LucidePencil, LucidePlus, LucideTrash } from '@lucide/angular';
 import { finalize } from 'rxjs';
 import { CategoryResponse } from '@core/api';
 import { AuthService } from '@core/auth/auth.service';
@@ -18,7 +19,9 @@ import { Roles } from '@core/auth/roles';
 import { ToastService } from '@core/services/toast.service';
 import { BadgeComponent } from '@shared/ui/badge/badge.component';
 import { ButtonComponent } from '@shared/ui/button/button.component';
+import { MenuAction, MenuComponent } from '@shared/ui/menu/menu.component';
 import { ModalComponent } from '@shared/ui/modal/modal.component';
+import { PageHeaderComponent } from '@shared/ui/page-header/page-header.component';
 import { DEFAULT_PAGE_SIZE, injectListNavigation, pageAttribute, textAttribute } from '@shared/ui/table/list-query';
 import { TableComponent } from '@shared/ui/table/table.component';
 import { TableColumn } from '@shared/ui/table/table.types';
@@ -31,7 +34,17 @@ import { CategoryService } from '../category.service';
  */
 @Component({
   selector: 'app-category-list',
-  imports: [TableComponent, ButtonComponent, BadgeComponent, ModalComponent, CategoryFormComponent],
+  imports: [
+    TableComponent,
+    ButtonComponent,
+    BadgeComponent,
+    MenuComponent,
+    ModalComponent,
+    PageHeaderComponent,
+    CategoryFormComponent,
+    LucidePlus,
+    LucideTrash,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './category-list.component.html',
 })
@@ -68,11 +81,13 @@ export class CategoryListComponent {
   private readonly actionTemplate = viewChild<TemplateRef<unknown>>('actionTemplate');
 
   protected readonly columns = computed<TableColumn<CategoryResponse>[]>(() => [
-    { key: 'name', header: 'Tên danh mục', sortable: true },
-    { key: 'description', header: 'Diễn giải' },
+    { key: 'name', header: 'Tên danh mục', sortable: true, className: 'font-medium' },
+    { key: 'description', header: 'Diễn giải', className: 'text-ink-muted' },
     { key: 'isActive', header: 'Trạng thái', template: this.statusTemplate() },
-    { key: 'createdAt', header: 'Ngày tạo', type: 'date', format: 'dd/MM/yyyy HH:mm', sortable: true },
-    ...(this.canEdit() ? [{ key: 'actions', header: '', template: this.actionTemplate(), width: '160px' }] : []),
+    { key: 'createdAt', header: 'Ngày tạo', type: 'date', format: 'dd/MM/yyyy', sortable: true },
+    ...(this.canEdit()
+      ? [{ key: 'actions', header: 'Thao tác', hideHeader: true, template: this.actionTemplate(), width: '56px' }]
+      : []),
   ]);
 
   protected readonly isFormOpen = signal(false);
@@ -85,6 +100,13 @@ export class CategoryListComponent {
       const error = this.list.error();
       if (error) this.toast.fromError(error);
     });
+  }
+
+  protected rowActions(category: CategoryResponse): MenuAction[] {
+    return [
+      { label: 'Sửa', icon: LucidePencil, run: () => this.openForm(category) },
+      { label: 'Xoá', icon: LucideTrash, danger: true, run: () => this.deleting.set(category) },
+    ];
   }
 
   protected openForm(category: CategoryResponse | null): void {

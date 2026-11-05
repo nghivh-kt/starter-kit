@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, inject, input, OnInit, output, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { LucideCheck, LucidePlus } from '@lucide/angular';
 import { finalize } from 'rxjs';
 import { CategoryResponse } from '@core/api';
 import { ApiError } from '@core/errors/api-error';
@@ -16,7 +17,7 @@ import { CategoryService } from '../category.service';
  */
 @Component({
   selector: 'app-category-form',
-  imports: [ReactiveFormsModule, InputComponent, CheckboxComponent, ButtonComponent],
+  imports: [ReactiveFormsModule, InputComponent, CheckboxComponent, ButtonComponent, LucideCheck, LucidePlus],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './category-form.component.html',
 })

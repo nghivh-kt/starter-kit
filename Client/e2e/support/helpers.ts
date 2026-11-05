@@ -1,4 +1,4 @@
-import { APIRequestContext, expect, Page, PlaywrightWorkerArgs } from '@playwright/test';
+import { APIRequestContext, expect, Locator, Page, PlaywrightWorkerArgs } from '@playwright/test';
 
 type Playwright = PlaywrightWorkerArgs['playwright'];
 
@@ -21,21 +21,36 @@ export function uniqueName(prefix: string): string {
 }
 
 export async function fillLoginForm(page: Page, { userName, password }: Credentials): Promise<void> {
-  await page.getByLabel('Username').fill(userName);
-  await page.getByLabel('Password').fill(password);
-  await page.getByRole('button', { name: 'Sign In' }).click();
+  await page.getByLabel('Tên đăng nhập').fill(userName);
+  await page.getByLabel('Mật khẩu').fill(password);
+  await page.getByRole('button', { name: 'Đăng nhập' }).click();
 }
 
 export async function login(page: Page, credentials: Credentials): Promise<void> {
   await page.goto('/auth/login');
   await fillLoginForm(page, credentials);
-  await expect(page.getByRole('heading', { name: 'Trang chủ' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: /Xin chào/ })).toBeVisible();
+}
+
+/** Liên kết trong menu bên trái. Trang chủ cũng có lối tắt cùng tên nên phải chỉ rõ vùng. */
+export function navLink(page: Page, name: string): Locator {
+  return page.getByRole('navigation', { name: 'Menu chính' }).getByRole('link', { name });
 }
 
 /** Mở menu tài khoản ở header rồi bấm một mục. */
 export async function chooseAccountMenu(page: Page, item: 'Đổi mật khẩu' | 'Đăng xuất'): Promise<void> {
-  await page.getByAltText('Ảnh đại diện').click();
-  await page.getByRole(item === 'Đăng xuất' ? 'button' : 'link', { name: item }).click();
+  await page.getByRole('banner').locator('app-menu button').click();
+  await page.getByRole('menuitem', { name: item }).click();
+}
+
+/** Mở menu "..." của dòng chứa nội dung này rồi bấm một thao tác. */
+export async function chooseRowAction(page: Page, rowText: string, action: string): Promise<void> {
+  await page
+    .getByRole('row')
+    .filter({ hasText: rowText })
+    .getByRole('button', { name: /Thao tác/ })
+    .click();
+  await page.getByRole('menuitem', { name: action }).click();
 }
 
 /** Client gọi API trực tiếp để chuẩn bị dữ liệu nhanh, không đi qua giao diện. */

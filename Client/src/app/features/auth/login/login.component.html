@@ -1,28 +1,35 @@
-<div class="min-h-screen flex items-center justify-center bg-slate-50 p-4">
-  <div class="w-full max-w-md bg-white rounded-2xl shadow-xl p-8 border border-gray-100">
-    <div class="text-center mb-8">
-      <h1 class="text-2xl font-bold text-gray-800">Welcome Back! 👋</h1>
-      <p class="text-gray-500 text-sm mt-2">Please enter your details to sign in.</p>
+<main class="flex min-h-screen items-center justify-center bg-canvas p-6">
+  <div class="flex w-full max-w-[380px] flex-col gap-6">
+    <div class="flex flex-col gap-4">
+      <span class="flex items-center gap-2.5 text-[15px] font-semibold text-ink">
+        <span
+          class="flex size-7 items-center justify-center rounded-lg bg-primary text-xs text-white"
+          aria-hidden="true"
+          >SK</span
+        >
+        Starter Kit
+      </span>
+      <div>
+        <h1 class="text-[22px]/7 font-semibold tracking-tight text-ink">Đăng nhập</h1>
+        <p class="mt-1 text-sm text-ink-muted">Nhập tài khoản được cấp để tiếp tục.</p>
+      </div>
     </div>
 
-    <form [formGroup]="form" (ngSubmit)="submit()" class="flex flex-col gap-5">
-      <app-input label="Username" formControlName="userName" />
-
-      <app-input label="Password" type="password" formControlName="password" />
+    <form
+      [formGroup]="form"
+      (ngSubmit)="submit()"
+      class="flex flex-col gap-4 rounded-xl border border-line bg-surface p-6"
+    >
+      <app-input label="Tên đăng nhập" formControlName="userName" />
+      <app-input label="Mật khẩu" type="password" formControlName="password" />
 
       @if (errorMessage(); as message) {
-        <p class="text-sm text-red-600" role="alert">{{ message }}</p>
+        <p class="text-sm text-danger-strong" role="alert">{{ message }}</p>
       }
 
-      <app-button
-        type="submit"
-        [disabled]="form.invalid || isLoading()"
-        [fullWidth]="true"
-        [loading]="isLoading()"
-        class="mt-2"
-      >
-        {{ isLoading() ? 'Signing in...' : 'Sign In' }}
+      <app-button type="submit" [fullWidth]="true" [loading]="isLoading()">
+        {{ isLoading() ? 'Đang đăng nhập...' : 'Đăng nhập' }}
       </app-button>
     </form>
   </div>
-</div>
+</main>

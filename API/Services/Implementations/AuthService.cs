@@ -61,7 +61,7 @@ namespace API.Services.Implementations
             // Đăng nhập đúng nhưng bị khoá => 403 (đã xác thực, nhưng không được phép)
             if (!user.IsActive)
             {
-                throw new ForbiddenException("Tài khoản đã bị khóa");
+                throw new ForbiddenException("Tài khoản đã bị khoá");
             }
 
             // 3. Tạo Refresh Token và lưu vào CSDL
@@ -115,7 +115,7 @@ namespace API.Services.Implementations
             var user = await _unitOfWork.Repository<User>().Query().FirstOrDefaultAsync(u => u.Id == refreshTokenExisting.UserId, ct);
             if (user is null || !user.IsActive)
             {
-                throw new UnauthorizedException("Tài khoản không tồn tại hoặc đã bị khóa");
+                throw new UnauthorizedException("Tài khoản không tồn tại hoặc đã bị khoá");
             }
 
             // 4. ROTATE TOKEN trong 1 transaction
@@ -189,7 +189,7 @@ namespace API.Services.Implementations
             // Access token vẫn còn hạn sau khi tài khoản bị khoá, nên phải kiểm tra lại IsActive
             var user = await _unitOfWork.Repository<User>().Query(asNoTracking: false)
                 .FirstOrDefaultAsync(u => u.Id == userId && u.IsActive, ct)
-                ?? throw new UnauthorizedException("Tài khoản không tồn tại hoặc đã bị khóa");
+                ?? throw new UnauthorizedException("Tài khoản không tồn tại hoặc đã bị khoá");
 
             if (!BCrypt.Net.BCrypt.Verify(request.CurrentPassword, user.PasswordHash))
             {

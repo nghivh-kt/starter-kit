@@ -109,7 +109,7 @@ namespace API.Services.Implementations
             // Nếu không, khi mở khoá lại, các token cũ sẽ sống lại.
             if (isBeingDeactivated)
             {
-                await _unitOfWork.RevokeActiveRefreshTokensAsync(existingUser.Id, _userContext.IpAddress, "Tài khoản bị khóa", _timeProvider.GetUtcNow().UtcDateTime, ct);
+                await _unitOfWork.RevokeActiveRefreshTokensAsync(existingUser.Id, _userContext.IpAddress, "Tài khoản bị khoá", _timeProvider.GetUtcNow().UtcDateTime, ct);
             }
 
             await _unitOfWork.SaveChangesAsync(ct);

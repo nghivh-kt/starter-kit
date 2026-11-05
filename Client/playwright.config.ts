@@ -19,14 +19,13 @@ process.env['E2E_ADMIN_PASSWORD'] ??= `E2e-${randomBytes(12).toString('hex')}`;
 
 export default defineConfig({
   testDir: './e2e',
+  globalSetup: './e2e/support/global-setup.ts',
   globalTeardown: './e2e/support/global-teardown.ts',
   // Các test dùng chung một database: chạy lần lượt để kết quả ổn định
   fullyParallel: false,
   workers: 1,
   forbidOnly: !!process.env['CI'],
   retries: process.env['CI'] ? 1 : 0,
-  // Mặc định 5 giây dễ fail giả khi máy đang bận: lần tải đầu của bản production chạy qua ng serve khá chậm
-  expect: { timeout: 10_000 },
   reporter: [['list'], ['html', { open: 'never' }]],
   use: {
     baseURL: 'http://localhost:4200',

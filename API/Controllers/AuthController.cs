@@ -124,7 +124,7 @@ namespace API.Controllers
         public async Task<ActionResult<CurrentUserResponse>> Me(CancellationToken ct)
         {
             var currentUser = await _authService.CurrentUserAsync(CurrentUserId(), ct)
-                ?? throw new UnauthorizedException("Tài khoản không tồn tại hoặc đã bị khóa");
+                ?? throw new UnauthorizedException("Tài khoản không tồn tại hoặc đã bị khoá");
 
             return Ok(currentUser);
         }

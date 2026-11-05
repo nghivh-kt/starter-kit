@@ -1,13 +1,13 @@
 // @ts-check
-const eslint = require("@eslint/js");
-const { defineConfig } = require("eslint/config");
-const tseslint = require("typescript-eslint");
-const angular = require("angular-eslint");
+const eslint = require('@eslint/js');
+const { defineConfig } = require('eslint/config');
+const tseslint = require('typescript-eslint');
+const angular = require('angular-eslint');
 
 module.exports = defineConfig([
-  { ignores: ["src/app/core/api/schema.d.ts"] },
+  { ignores: ['src/app/core/api/schema.d.ts'] },
   {
-    files: ["**/*.ts"],
+    files: ['**/*.ts'],
     extends: [
       eslint.configs.recommended,
       tseslint.configs.recommended,
@@ -16,29 +16,36 @@ module.exports = defineConfig([
     ],
     processor: angular.processInlineTemplates,
     rules: {
-      "@angular-eslint/directive-selector": ["error", { type: "attribute", prefix: "app", style: "camelCase" }],
-      "@angular-eslint/component-selector": ["error", { type: "element", prefix: "app", style: "kebab-case" }],
-      "@angular-eslint/prefer-on-push-component-change-detection": "error",
-      "no-console": ["error", { allow: ["error"] }],
+      '@angular-eslint/directive-selector': ['error', { type: 'attribute', prefix: 'app', style: 'camelCase' }],
+      '@angular-eslint/component-selector': ['error', { type: 'element', prefix: 'app', style: 'kebab-case' }],
+      '@angular-eslint/prefer-on-push-component-change-detection': 'error',
+      'no-console': ['error', { allow: ['error'] }],
       // Cho phép callback rỗng mặc định của ControlValueAccessor: onChange = () => {}
-      "@typescript-eslint/no-empty-function": ["error", { allow: ["arrowFunctions"] }],
-      // Tạm ở mức warn: được đổi tên ở giai đoạn accessibility
-      "@typescript-eslint/no-explicit-any": "error",
-      "@typescript-eslint/no-unused-vars": "error",
-      "@angular-eslint/no-output-native": "warn",
+      '@typescript-eslint/no-empty-function': ['error', { allow: ['arrowFunctions'] }],
+      '@typescript-eslint/no-explicit-any': 'error',
+      '@typescript-eslint/no-unused-vars': 'error',
+      '@angular-eslint/no-output-native': 'error',
     },
   },
   {
-    files: ["**/*.html"],
-    extends: [
-      angular.configs.templateRecommended,
-      angular.configs.templateAccessibility,
-    ],
+    // Feature chỉ dùng giao diện từ shared/ui: đổi thư viện bên dưới thì không phải sửa từng màn hình
+    files: ['src/app/features/**/*.ts'],
     rules: {
-      // Tạm ở mức warn: được sửa ở giai đoạn accessibility
-      "@angular-eslint/template/click-events-have-key-events": "warn",
-      "@angular-eslint/template/interactive-supports-focus": "warn",
-      "@angular-eslint/template/label-has-associated-control": "warn",
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['@angular/cdk/*', '@angular/material', '@angular/material/*'],
+              message: 'Dùng component trong @shared/ui. Cần thành phần mới thì bọc thư viện vào shared/ui.',
+            },
+          ],
+        },
+      ],
     },
+  },
+  {
+    files: ['**/*.html'],
+    extends: [angular.configs.templateRecommended, angular.configs.templateAccessibility],
   },
 ]);

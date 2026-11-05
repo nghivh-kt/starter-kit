@@ -28,6 +28,15 @@ Mọi lỗi HTTP đến component đều là `ApiError` (`message`, `code`, `err
 - Lỗi theo field (400): `applyApiErrors(form, error)` gán lỗi vào đúng ô của form.
 - Request chạy ngầm: đặt `BACKGROUND_REQUEST` trong `HttpContext` để không hiện thanh tiến trình và toast.
 
+## Giao diện
+
+- **Màu và font:** token nằm trong `src/tailwind.css` (`bg-primary`, `text-ink`, `border-line`...). Đổi màu thương hiệu ở đó, không viết thẳng màu như `bg-blue-600` trong component.
+- **Component:** feature chỉ dùng giao diện từ `shared/ui`. ESLint chặn feature import trực tiếp `@angular/cdk` hoặc Angular Material; cần thành phần mới thì bọc thư viện vào `shared/ui`.
+- **Icon:** dùng [Lucide](https://lucide.dev/icons/), không dùng emoji. Import đúng icon cần dùng để bản build chỉ chứa các icon đó: `<svg lucidePlus aria-hidden="true" class="size-4"></svg>`.
+- **Font:** Inter tự host qua `@fontsource-variable/inter`, không tải từ Google Fonts. Trình duyệt chỉ tải phần chữ cần dùng.
+- **Thao tác trong bảng:** gom vào `app-menu` (nút "..."), truyền danh sách `MenuAction`.
+- **Menu:** thêm module thì khai báo một dòng trong `core/navigation/navigation.ts`, menu bên trái và trang chủ tự cập nhật.
+
 ## Lệnh thường dùng
 
 ```bash

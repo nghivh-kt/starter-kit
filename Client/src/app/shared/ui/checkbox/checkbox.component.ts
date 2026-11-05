@@ -9,7 +9,7 @@ import { injectControlState } from '../form-control-state';
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="flex flex-col">
-      <label class="inline-flex items-start gap-3 cursor-pointer group relative" [attr.for]="id()">
+      <label class="group relative inline-flex cursor-pointer items-center gap-2.5" [attr.for]="id()">
         <!-- Checkbox gốc: ẩn về mặt hiển thị, giữ lại cho bàn phím và trình đọc màn hình -->
         <input
           type="checkbox"
@@ -26,11 +26,10 @@ import { injectControlState } from '../form-control-state';
         />
 
         <div
-          class="w-5 h-5 mt-0.5 border rounded flex items-center justify-center
-                 transition-all duration-200 bg-white
-                 peer-focus:ring-2 peer-focus:ring-offset-1 peer-focus:ring-blue-500
-                 peer-checked:bg-blue-600 peer-checked:border-blue-600"
-          [ngClass]="state.showError() ? 'border-red-500' : 'border-gray-300 group-hover:border-blue-400'"
+          class="flex size-[18px] flex-none items-center justify-center rounded border bg-surface transition-colors
+                 peer-checked:border-primary peer-checked:bg-primary
+                 peer-focus-visible:ring-2 peer-focus-visible:ring-primary peer-focus-visible:ring-offset-2"
+          [ngClass]="state.showError() ? 'border-danger' : 'border-line-strong group-hover:border-primary'"
         >
           <svg
             class="w-3.5 h-3.5 text-white transition-opacity duration-200"
@@ -49,41 +48,19 @@ import { injectControlState } from '../form-control-state';
           </svg>
         </div>
 
-        <span
-          class="text-sm text-gray-700 select-none group-hover:text-gray-900 pt-0.5"
-          [class.opacity-50]="disabled()"
-        >
+        <span class="text-sm text-ink select-none" [class.opacity-50]="disabled()">
           <ng-content />
           @if (state.isRequired()) {
-            <span class="text-red-500 ml-0.5">*</span>
+            <span class="ml-0.5 text-danger-strong" aria-hidden="true">*</span>
           }
         </span>
       </label>
 
       @if (state.showError()) {
-        <p [id]="errorId()" class="mt-1 text-xs text-red-500 ml-8 animate-fade-in" role="alert">
-          {{ errorMessage() }}
-        </p>
+        <p [id]="errorId()" class="mt-1.5 ml-7 text-[13px] text-danger-strong" role="alert">{{ errorMessage() }}</p>
       }
     </div>
   `,
-  styles: [
-    `
-      .animate-fade-in {
-        animation: fadeIn 0.2s ease-out;
-      }
-      @keyframes fadeIn {
-        from {
-          opacity: 0;
-          transform: translateY(-2px);
-        }
-        to {
-          opacity: 1;
-          transform: translateY(0);
-        }
-      }
-    `,
-  ],
 })
 export class CheckboxComponent implements ControlValueAccessor {
   readonly id = input(`chk-${Math.random().toString(36).substring(2, 9)}`);
@@ -102,7 +79,7 @@ export class CheckboxComponent implements ControlValueAccessor {
     if (customError) return customError;
     const serverError = this.state.errors()?.['server'];
     if (serverError) return serverError;
-    return this.state.errors()?.['requiredTrue'] ? 'This field must be checked' : 'Invalid value';
+    return this.state.errors()?.['requiredTrue'] ? 'Vui lòng đánh dấu ô này' : 'Giá trị không hợp lệ';
   });
 
   private onChange: (value: boolean) => void = () => {};

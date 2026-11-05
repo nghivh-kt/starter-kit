@@ -46,6 +46,14 @@ describe('CategoryListComponent', () => {
       b.textContent?.includes(label),
     );
 
+  const rowMenu = () =>
+    (fixture.nativeElement as HTMLElement).querySelector<HTMLButtonElement>('[aria-label^="Thao tác"]');
+  // Menu nổi trên trang (overlay) nên nằm ngoài component, phải tìm trong document
+  const menuItem = (label: string) =>
+    Array.from(document.querySelectorAll<HTMLButtonElement>('[role="menuitem"]')).find((item) =>
+      item.textContent?.includes(label),
+    );
+
   beforeEach(() => {
     TestBed.configureTestingModule({
       providers: [
@@ -102,9 +110,11 @@ describe('CategoryListComponent', () => {
     listRequest().flush(page([CATEGORY]));
     await fixture.whenStable();
 
-    expect(button('Thêm mới')).toBeTruthy();
-    expect(button('Sửa')).toBeTruthy();
-    expect(button('Xoá')).toBeTruthy();
+    expect(button('Thêm danh mục')).toBeTruthy();
+    rowMenu()!.click();
+    await fixture.whenStable();
+    expect(menuItem('Sửa')).toBeTruthy();
+    expect(menuItem('Xoá')).toBeTruthy();
   });
 
   it('User thường chỉ xem, không thấy thao tác ghi', async () => {
@@ -113,9 +123,8 @@ describe('CategoryListComponent', () => {
     await fixture.whenStable();
 
     expect(text()).toContain('Sách');
-    expect(button('Thêm mới')).toBeUndefined();
-    expect(button('Sửa')).toBeUndefined();
-    expect(button('Xoá')).toBeUndefined();
+    expect(button('Thêm danh mục')).toBeUndefined();
+    expect(rowMenu()).toBeNull();
   });
 
   it('xoá phải xác nhận, rồi gọi API và tải lại', async () => {
@@ -123,7 +132,9 @@ describe('CategoryListComponent', () => {
     listRequest().flush(page([CATEGORY]));
     await fixture.whenStable();
 
-    button('Xoá')!.click();
+    rowMenu()!.click();
+    await fixture.whenStable();
+    menuItem('Xoá')!.click();
     await fixture.whenStable();
     mock.expectNone('/api/categories/7');
     expect(text()).toContain('Bạn có chắc muốn xoá');
@@ -149,7 +160,7 @@ describe('CategoryListComponent', () => {
     await fixture.whenStable();
 
     expect(TestBed.inject(ToastService).toasts()).toHaveLength(1);
-    expect(text()).toContain('Quản lý danh mục');
+    expect(text()).toContain('Danh mục');
   });
 
   it('điều hướng ghi trang lên URL', () => {

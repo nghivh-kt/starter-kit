@@ -33,9 +33,12 @@ describe('UserListComponent', () => {
 
   const listRequest = (): TestRequest => mock.expectOne((request) => request.url === '/api/users');
   const text = () => (fixture.nativeElement as HTMLElement).textContent ?? '';
-  const button = (label: string) =>
-    Array.from((fixture.nativeElement as HTMLElement).querySelectorAll('button')).find((b) =>
-      b.textContent?.includes(label),
+  const rowMenu = () =>
+    (fixture.nativeElement as HTMLElement).querySelector<HTMLButtonElement>('[aria-label^="Thao tác"]');
+  // Menu nổi trên trang (overlay) nên nằm ngoài component, phải tìm trong document
+  const menuItem = (label: string) =>
+    Array.from(document.querySelectorAll<HTMLButtonElement>('[role="menuitem"]')).find((item) =>
+      item.textContent?.includes(label),
     );
 
   function setup(inputs: Record<string, string> = {}) {
@@ -75,7 +78,10 @@ describe('UserListComponent', () => {
 
     expect(text()).toContain('nguyenvana');
     expect(text()).toContain('Đã khoá');
-    expect(button('Xoá')).toBeUndefined();
+    rowMenu()!.click();
+    await fixture.whenStable();
+    expect(menuItem('Sửa')).toBeTruthy();
+    expect(menuItem('Xoá')).toBeUndefined();
   });
 
   it('nút đặt lại mật khẩu mở đúng modal cho người được chọn, Huỷ thì đóng lại', async () => {
@@ -83,7 +89,9 @@ describe('UserListComponent', () => {
     listRequest().flush(page([USER]));
     await fixture.whenStable();
 
-    button('Đặt lại mật khẩu')!.click();
+    rowMenu()!.click();
+    await fixture.whenStable();
+    menuItem('Đặt lại mật khẩu')!.click();
     await fixture.whenStable();
     const dialog = (fixture.nativeElement as HTMLElement).querySelector('[role="dialog"]');
     expect(dialog?.textContent).toContain('nguyenvana');
@@ -101,6 +109,6 @@ describe('UserListComponent', () => {
     await fixture.whenStable();
 
     expect(TestBed.inject(ToastService).toasts()).toHaveLength(1);
-    expect(text()).toContain('Quản lý người dùng');
+    expect(text()).toContain('Người dùng');
   });
 });

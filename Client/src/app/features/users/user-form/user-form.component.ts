@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, inject, input, OnInit, output, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { LucideCheck, LucidePlus } from '@lucide/angular';
 import { finalize } from 'rxjs';
 import { UserResponse } from '@core/api';
 import { Roles } from '@core/auth/roles';
@@ -12,7 +13,7 @@ import { InputComponent } from '@shared/ui/input/input.component';
 import { SelectComponent, SelectOption } from '@shared/ui/select/select.component';
 import { UserService } from '../user.service';
 
-const ROLE_OPTIONS: SelectOption<string>[] = [
+export const ROLE_OPTIONS: SelectOption<string>[] = [
   { value: Roles.Admin, label: 'Quản trị' },
   { value: Roles.User, label: 'Người dùng' },
 ];
@@ -23,7 +24,15 @@ const ROLE_OPTIONS: SelectOption<string>[] = [
  */
 @Component({
   selector: 'app-user-form',
-  imports: [ReactiveFormsModule, InputComponent, SelectComponent, CheckboxComponent, ButtonComponent],
+  imports: [
+    ReactiveFormsModule,
+    InputComponent,
+    SelectComponent,
+    CheckboxComponent,
+    ButtonComponent,
+    LucideCheck,
+    LucidePlus,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './user-form.component.html',
 })

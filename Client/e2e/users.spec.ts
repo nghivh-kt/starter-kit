@@ -1,5 +1,15 @@
 import { Browser, BrowserContext, expect, Page, test } from '@playwright/test';
-import { admin, Credentials, createUser, fillLoginForm, login, uniqueName, USER_PASSWORD } from './support/helpers';
+import {
+  admin,
+  chooseRowAction,
+  Credentials,
+  createUser,
+  fillLoginForm,
+  login,
+  navLink,
+  uniqueName,
+  USER_PASSWORD,
+} from './support/helpers';
 
 const row = (page: Page, text: string) => page.getByRole('row').filter({ hasText: text });
 
@@ -29,31 +39,31 @@ test.describe('Quản lý người dùng', () => {
     browser,
   }) => {
     const userName = uniqueName('e2enew');
-    await page.getByRole('link', { name: 'Người dùng' }).click();
-    await expect(page.getByRole('heading', { name: 'Quản lý người dùng' })).toBeVisible();
+    await navLink(page, 'Người dùng').click();
+    await expect(page.getByRole('heading', { name: 'Người dùng' })).toBeVisible();
 
-    await page.getByRole('button', { name: 'Thêm mới' }).click();
-    const dialog = page.getByRole('dialog', { name: 'Thêm mới người dùng' });
+    await page.getByRole('button', { name: 'Thêm người dùng' }).click();
+    const dialog = page.getByRole('dialog', { name: 'Thêm người dùng' });
 
     await dialog.getByLabel('Tên đăng nhập').fill(userName);
     await dialog.getByLabel('Họ và tên').fill('Nguyễn Văn Mới');
     await dialog.getByLabel('Email').fill('khong-phai-email');
     await dialog.getByLabel('Mật khẩu').fill('ngan');
-    await dialog.getByRole('button', { name: 'Thêm mới' }).click();
+    await dialog.getByRole('button', { name: 'Thêm người dùng' }).click();
     await expect(dialog.getByText('Email không hợp lệ')).toBeVisible();
     await expect(dialog.getByText(/ít nhất 8 ký tự/)).toBeVisible();
 
     await dialog.getByLabel('Email').fill(`${userName}@example.com`);
     await dialog.getByLabel('Mật khẩu').fill(USER_PASSWORD);
     await dialog.getByLabel('Vai trò').selectOption({ label: 'Quản trị' });
-    await dialog.getByRole('button', { name: 'Thêm mới' }).click();
+    await dialog.getByRole('button', { name: 'Thêm người dùng' }).click();
     await expect(dialog).toBeHidden();
 
     await page.goto(`/users?search=${userName}`);
-    await expect(row(page, userName)).toContainText('Admin');
+    await expect(row(page, userName)).toContainText('Quản trị');
 
     const created = await tryLogin(browser, { userName, password: USER_PASSWORD });
-    await expect(created.getByRole('link', { name: 'Người dùng' })).toBeVisible();
+    await expect(navLink(created, 'Người dùng')).toBeVisible();
   });
 
   test('khoá tài khoản thì không đăng nhập được; sửa tài khoản khoá không tự mở khoá', async ({
@@ -64,7 +74,7 @@ test.describe('Quản lý người dùng', () => {
     const user = await createUser(playwright);
     await page.goto(`/users?search=${user.userName}`);
 
-    await row(page, user.userName).getByRole('button', { name: 'Sửa' }).click();
+    await chooseRowAction(page, user.userName, 'Sửa');
     const dialog = page.getByRole('dialog', { name: 'Cập nhật người dùng' });
     await expect(dialog.getByLabel('Tên đăng nhập')).toBeDisabled();
     await dialog.getByText('Đang hoạt động').click(); // Ô gốc bị ẩn có chủ đích: người dùng bấm vào nhãn
@@ -74,11 +84,11 @@ test.describe('Quản lý người dùng', () => {
     await expect(row(page, user.userName)).toContainText('Đã khoá');
 
     const locked = await tryLogin(browser, user);
-    await expect(locked.getByText('Tài khoản đã bị khóa')).toBeVisible();
+    await expect(locked.getByText('Tài khoản đã bị khoá')).toBeVisible();
     await expect(locked).toHaveURL(/\/auth\/login/);
 
     // Lỗi cũ của POS: mỗi lần sửa đều gửi isActive = true và tự mở khoá tài khoản
-    await row(page, user.userName).getByRole('button', { name: 'Sửa' }).click();
+    await chooseRowAction(page, user.userName, 'Sửa');
     await expect(dialog.getByLabel('Đang hoạt động')).not.toBeChecked();
     await dialog.getByLabel('Họ và tên').fill('Tên mới');
     await dialog.getByRole('button', { name: 'Cập nhật' }).click();
@@ -95,10 +105,10 @@ test.describe('Quản lý người dùng', () => {
     const user = await createUser(playwright);
     const newPassword = 'Mat-khau-dat-lai-3';
     const userSession = await tryLogin(browser, user);
-    await expect(userSession.getByRole('heading', { name: 'Trang chủ' })).toBeVisible();
+    await expect(userSession.getByRole('heading', { name: /Xin chào/ })).toBeVisible();
 
     await page.goto(`/users?search=${user.userName}`);
-    await row(page, user.userName).getByRole('button', { name: 'Đặt lại mật khẩu' }).click();
+    await chooseRowAction(page, user.userName, 'Đặt lại mật khẩu');
     const dialog = page.getByRole('dialog', { name: 'Đặt lại mật khẩu' });
     await dialog.getByLabel('Mật khẩu mới').fill(newPassword);
     await dialog.getByRole('button', { name: 'Đặt lại mật khẩu' }).click();
@@ -112,6 +122,6 @@ test.describe('Quản lý người dùng', () => {
     await expect(withOld.getByRole('alert')).toBeVisible();
 
     const withNew = await tryLogin(browser, { ...user, password: newPassword });
-    await expect(withNew.getByRole('heading', { name: 'Trang chủ' })).toBeVisible();
+    await expect(withNew.getByRole('heading', { name: /Xin chào/ })).toBeVisible();
   });
 });

@@ -8,8 +8,8 @@ import { LoadingService } from '@core/services/loading.service';
   imports: [],
   template: `
     @if (loadingService.isLoading()) {
-      <div class="fixed top-0 left-0 right-0 z-[9999] h-1 bg-blue-100 overflow-hidden">
-        <div class="h-full bg-blue-600 animate-progress origin-left"></div>
+      <div class="fixed top-0 right-0 left-0 z-[9999] h-0.5 overflow-hidden bg-primary-soft">
+        <div class="h-full origin-left bg-primary animate-progress"></div>
       </div>
     }
   `,

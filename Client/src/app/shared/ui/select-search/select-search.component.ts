@@ -18,6 +18,7 @@ import { NgClass, NgTemplateOutlet } from '@angular/common';
 import { ControlValueAccessor } from '@angular/forms';
 import { CdkVirtualScrollViewport, ScrollingModule } from '@angular/cdk/scrolling';
 import { OverlayModule } from '@angular/cdk/overlay';
+import { LucideCheck, LucideChevronDown, LucideX } from '@lucide/angular';
 import {
   catchError,
   debounce,
@@ -39,15 +40,15 @@ export interface SelectOption<T = unknown> {
 
 @Component({
   selector: 'app-select-search',
-  imports: [NgClass, NgTemplateOutlet, ScrollingModule, OverlayModule],
+  imports: [NgClass, NgTemplateOutlet, ScrollingModule, OverlayModule, LucideCheck, LucideChevronDown, LucideX],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="relative w-full">
       @if (label()) {
-        <label [for]="id()" class="block text-sm font-medium text-gray-700 mb-1.5">
+        <label [for]="id()" class="mb-1.5 block text-sm font-medium text-ink">
           {{ label() }}
           @if (state.isRequired()) {
-            <span class="text-red-500">*</span>
+            <span class="text-danger-strong" aria-hidden="true">*</span>
           }
         </label>
       }
@@ -58,10 +59,8 @@ export interface SelectOption<T = unknown> {
         #trigger="cdkOverlayOrigin"
         type="button"
         [id]="id()"
-        class="w-full flex items-center justify-between px-3 py-1 min-h-[32px] border rounded-md
-               text-sm bg-white transition-all outline-none
-               disabled:bg-gray-50 disabled:text-gray-500
-               cursor-pointer disabled:cursor-not-allowed"
+        class="flex min-h-9 w-full cursor-pointer items-center justify-between rounded-lg border bg-surface px-3 py-1 text-sm
+               transition-colors outline-none disabled:cursor-not-allowed disabled:bg-canvas disabled:text-ink-muted"
         [disabled]="disabled()"
         (click)="toggle()"
         (keydown)="onTriggerKeydown($event)"
@@ -71,51 +70,36 @@ export interface SelectOption<T = unknown> {
         [attr.aria-required]="state.isRequired()"
         [attr.aria-invalid]="state.showError()"
         [ngClass]="{
-          'border-red-300 focus:ring-2 focus:ring-red-200 focus:border-red-500': state.showError(),
-          'border-gray-300 focus:ring-2 focus:ring-blue-100 focus:border-blue-500 hover:border-gray-400':
-            !state.showError(),
+          'border-danger focus:ring-2 focus:ring-danger/20': state.showError(),
+          'border-line-strong focus:border-primary focus:ring-2 focus:ring-primary/20': !state.showError(),
         }"
       >
         <div class="flex flex-wrap gap-1.5 items-center flex-1 overflow-hidden">
           @if (multiple() && hasValue()) {
             @for (val of valueAsArray(); track val) {
               <div
-                class="bg-orange-100 border border-orange-200 text-orange-900 rounded px-1.5 py-0.5 text-xs flex items-center gap-1 max-w-full animate-fade-in"
+                class="flex max-w-full items-center gap-1 rounded bg-primary-soft px-1.5 py-0.5 text-xs text-primary-strong animate-fade-in"
               >
-                <span class="truncate max-w-[150px]" [title]="getLabelForValue(val)">
+                <span class="max-w-[150px] truncate" [title]="getLabelForValue(val)">
                   {{ getLabelForValue(val) }}
                 </span>
                 <span
+                  aria-hidden="true"
                   (click)="removeItem(val, $event)"
-                  class="cursor-pointer hover:text-red-600 hover:bg-orange-200 rounded-full p-0.5 transition-colors"
+                  class="cursor-pointer rounded-full p-0.5 transition-colors hover:bg-primary/10"
                 >
-                  <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      stroke-width="2"
-                      d="M6 18L18 6M6 6l12 12"
-                    ></path>
-                  </svg>
+                  <svg lucideX class="size-3"></svg>
                 </span>
               </div>
             }
           } @else {
-            <span class="truncate pr-2" [class.text-gray-500]="!hasValue()" [class.text-gray-900]="hasValue()">
+            <span class="truncate pr-2" [class.text-ink-subtle]="!hasValue()" [class.text-ink]="hasValue()">
               {{ displayLabel() }}
             </span>
           }
         </div>
 
-        <svg
-          class="w-4 h-4 text-gray-500 flex-shrink-0 ml-2"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-          stroke-width="2"
-        >
-          <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
-        </svg>
+        <svg lucideChevronDown aria-hidden="true" class="ml-2 size-4 flex-none text-ink-subtle"></svg>
       </button>
 
       <ng-template
@@ -126,13 +110,15 @@ export interface SelectOption<T = unknown> {
         (overlayOutsideClick)="close()"
       >
         <div
-          class="mt-1 bg-white border border-gray-200 rounded-lg shadow-xl overflow-hidden animate-fade-in flex flex-col w-full min-w-[200px]"
+          class="mt-1 flex w-full min-w-[200px] flex-col overflow-hidden rounded-xl border border-line bg-surface shadow-lg animate-fade-in"
         >
-          <div class="border-b p-2 bg-white">
+          <div class="border-b border-line p-2">
             <input
               #searchInput
               type="text"
-              class="w-full px-3 py-1.5 text-sm border rounded bg-gray-50 outline-none focus:ring-1 focus:ring-blue-500"
+              [attr.aria-label]="searchPlaceholder()"
+              class="h-9 w-full rounded-lg border border-line-strong bg-surface px-3 text-sm text-ink outline-none
+                     focus:border-primary focus:ring-2 focus:ring-primary/20"
               [placeholder]="searchPlaceholder()"
               [value]="searchTerm()"
               (input)="onSearchInput($event)"
@@ -141,19 +127,22 @@ export interface SelectOption<T = unknown> {
           </div>
 
           @if (loading()) {
-            <div class="px-4 py-2 text-sm text-gray-500 flex items-center gap-2">
-              <span class="animate-spin h-4 w-4 border-2 border-current border-t-transparent rounded-full"></span>
-              Loading...
+            <div class="flex items-center gap-2 px-4 py-2 text-sm text-ink-muted">
+              <span
+                class="size-4 animate-spin rounded-full border-2 border-current border-t-transparent"
+                aria-hidden="true"
+              ></span>
+              Đang tải...
             </div>
           }
 
           @if (!loading() && useAsync() && minChars() > 0 && searchTerm().trim().length < minChars()) {
-            <div class="px-4 py-2 text-sm text-gray-500">Type at least {{ minChars() }} character(s) to search</div>
+            <div class="px-4 py-2 text-sm text-ink-muted">Nhập ít nhất {{ minChars() }} ký tự để tìm</div>
           }
 
           <cdk-virtual-scroll-viewport
             #viewport
-            class="block custom-scrollbar bg-white"
+            class="block bg-surface"
             [style.height.px]="calculatedHeight()"
             [itemSize]="itemSize()"
             role="listbox"
@@ -163,19 +152,23 @@ export interface SelectOption<T = unknown> {
             <div
               *cdkVirtualFor="let opt of filteredOptions(); let i = index"
               role="option"
-              class="px-4 flex items-center text-sm cursor-pointer select-none hover:bg-blue-50 transition-colors"
+              tabindex="-1"
+              class="flex cursor-pointer items-center px-4 text-sm text-ink transition-colors select-none hover:bg-hover"
               [style.height.px]="itemSize()"
-              [class.bg-blue-100]="i === activeIndex()"
+              [class.bg-hover]="i === activeIndex()"
               [attr.aria-selected]="isSelected(opt)"
               (mouseenter)="activeIndex.set(i)"
               (click)="select(opt)"
+              (keydown.enter)="select(opt)"
             >
               @if (multiple()) {
-                <div class="mr-3 flex items-center pointer-events-none">
+                <div class="pointer-events-none mr-3 flex items-center">
                   <input
                     type="checkbox"
+                    tabindex="-1"
+                    aria-hidden="true"
                     [checked]="isSelected(opt)"
-                    class="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                    class="size-4 rounded border-line-strong accent-primary"
                   />
                 </div>
               }
@@ -187,34 +180,19 @@ export interface SelectOption<T = unknown> {
               }
 
               @if (!multiple() && isSelected(opt)) {
-                <span class="ml-auto text-blue-600">✓</span>
+                <svg lucideCheck aria-hidden="true" class="ml-auto size-4 text-primary"></svg>
               }
             </div>
 
             @if (!loading() && filteredOptions().length === 0) {
-              <div class="px-4 py-2 text-sm text-gray-500">No results found.</div>
+              <div class="px-4 py-2 text-sm text-ink-muted">Không tìm thấy kết quả</div>
             }
           </cdk-virtual-scroll-viewport>
         </div>
       </ng-template>
 
       @if (state.showError()) {
-        <p class="mt-1 text-xs text-red-500 flex items-center gap-1" role="alert">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 20 20"
-            fill="currentColor"
-            class="w-3 h-3"
-            aria-hidden="true"
-          >
-            <path
-              fill-rule="evenodd"
-              d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-5a.75.75 0 01.75.75v4.5a.75.75 0 01-1.5 0v-4.5A.75.75 0 0110 5zm0 10a1 1 0 100-2 1 1 0 000 2z"
-              clip-rule="evenodd"
-            />
-          </svg>
-          {{ errorMessage() }}
-        </p>
+        <p class="mt-1.5 text-[13px] text-danger-strong" role="alert">{{ errorMessage() }}</p>
       }
     </div>
   `,
@@ -245,8 +223,8 @@ export class SelectSearchComponent<T = unknown> implements ControlValueAccessor 
   readonly id = input(`select-search-${Math.random().toString(36).substring(2, 9)}`);
   readonly options = input<SelectOption<T>[]>([]);
   readonly multiple = input(false);
-  readonly placeholder = input('Select option');
-  readonly searchPlaceholder = input('Search...');
+  readonly placeholder = input('Chọn một giá trị');
+  readonly searchPlaceholder = input('Tìm kiếm...');
   readonly customError = input<string | null>(null);
 
   // Tìm kiếm qua API
@@ -300,7 +278,7 @@ export class SelectSearchComponent<T = unknown> implements ControlValueAccessor 
     if (customError) return customError;
     const serverError = this.state.errors()?.['server'];
     if (serverError) return serverError;
-    return this.state.errors()?.['required'] ? `${this.label() || 'Trường này'} là bắt buộc` : 'Invalid value';
+    return this.state.errors()?.['required'] ? `${this.label() || 'Trường này'} là bắt buộc` : 'Giá trị không hợp lệ';
   });
 
   private readonly search$ = new Subject<string>();

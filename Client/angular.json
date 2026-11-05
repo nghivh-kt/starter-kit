@@ -33,6 +33,7 @@
               "src/web.config"
             ],
             "styles": [
+              "@fontsource-variable/inter/wght.css",
               "src/styles.scss",
               "src/tailwind.css"
             ]

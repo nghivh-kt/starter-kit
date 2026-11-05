@@ -6,10 +6,11 @@ import {
   createUser,
   fillLoginForm,
   login,
+  navLink,
   USER_PASSWORD,
 } from './support/helpers';
 
-const HOME = 'Trang chủ';
+const HOME = /Xin chào/;
 const CATEGORY_URL = '**/api/categories?*';
 
 test.describe('Đăng nhập', () => {
@@ -20,7 +21,7 @@ test.describe('Đăng nhập', () => {
     await fillLoginForm(page, admin());
 
     await expect(page).toHaveURL(/\/categories\?search=abc$/);
-    await expect(page.getByRole('heading', { name: 'Quản lý danh mục' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Danh mục' })).toBeVisible();
   });
 
   test('sai mật khẩu thì báo lỗi ngay trong form', async ({ page }) => {
@@ -29,7 +30,7 @@ test.describe('Đăng nhập', () => {
 
     await expect(page.getByRole('alert')).toBeVisible();
     await expect(page).toHaveURL(/\/auth\/login/);
-    await expect(page.getByRole('button', { name: 'Sign In' })).toBeEnabled();
+    await expect(page.getByRole('button', { name: 'Đăng nhập' })).toBeEnabled();
   });
 
   test('returnUrl trỏ ra ngoài site bị bỏ qua', async ({ page }) => {
@@ -74,9 +75,9 @@ test.describe('Phiên đăng nhập', () => {
       if (response.url().endsWith('/api/auth/refresh')) refreshes++;
     });
 
-    await page.getByRole('link', { name: 'Danh mục' }).click();
+    await navLink(page, 'Danh mục').click();
 
-    await expect(page.getByRole('heading', { name: 'Quản lý danh mục' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Danh mục' })).toBeVisible();
     await expect.poll(() => statuses).toEqual([401, 200]);
     expect(refreshes).toBe(1);
     await expect(page).toHaveURL(/\/categories/);
@@ -87,7 +88,7 @@ test.describe('Phiên đăng nhập', () => {
     await context.clearCookies();
     await breakNextToken(page, CATEGORY_URL);
 
-    await page.getByRole('link', { name: 'Danh mục' }).click();
+    await navLink(page, 'Danh mục').click();
 
     await expect(page).toHaveURL(/\/auth\/login\?returnUrl=%2Fcategories/);
     await expect(page.getByText('Phiên đăng nhập đã hết hạn')).toBeVisible();
@@ -102,7 +103,7 @@ test.describe('Phiên đăng nhập', () => {
 
     // F5 không đăng nhập lại được
     await page.reload();
-    await expect(page.getByRole('button', { name: 'Sign In' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Đăng nhập' })).toBeVisible();
 
     // Cookie cũ đã bị thu hồi, kể cả khi ai đó còn giữ bản sao
     const reused = await request.post('/api/auth/refresh', { headers: { Cookie: `${cookie.name}=${cookie.value}` } });
@@ -138,7 +139,7 @@ test.describe('Nhiều tab', () => {
     await login(page, admin());
     const second = await context.newPage();
     await second.goto('/categories');
-    await expect(second.getByRole('heading', { name: 'Quản lý danh mục' })).toBeVisible();
+    await expect(second.getByRole('heading', { name: 'Danh mục' })).toBeVisible();
 
     await chooseAccountMenu(page, 'Đăng xuất');
 

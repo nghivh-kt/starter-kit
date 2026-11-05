@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, inject, input, output, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
+import { LucideKeyRound } from '@lucide/angular';
 import { finalize } from 'rxjs';
 import { UserResponse } from '@core/api';
 import { applyApiErrors } from '@core/errors/form-errors';
@@ -12,19 +13,22 @@ import { UserService } from '../user.service';
 /** Admin đặt lại mật khẩu cho user. API thu hồi mọi phiên của user đó. */
 @Component({
   selector: 'app-user-reset-password',
-  imports: [ReactiveFormsModule, InputComponent, ButtonComponent],
+  imports: [ReactiveFormsModule, InputComponent, ButtonComponent, LucideKeyRound],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <form [formGroup]="form" (ngSubmit)="submit()" class="flex flex-col gap-3">
-      <p class="text-sm text-gray-700">
-        Đặt lại mật khẩu cho <strong>{{ user().userName }}</strong
+    <form [formGroup]="form" (ngSubmit)="submit()" class="flex flex-col gap-4">
+      <p class="text-sm text-ink-muted">
+        Đặt lại mật khẩu cho <strong class="font-medium text-ink">{{ user().userName }}</strong
         >. Người dùng này sẽ bị đăng xuất khỏi mọi thiết bị.
       </p>
       <app-input label="Mật khẩu mới" type="password" formControlName="newPassword" />
 
-      <div class="flex flex-row justify-end gap-3">
+      <div class="flex justify-end gap-2 pt-1">
         <app-button variant="outline" (click)="cancelled.emit()">Huỷ</app-button>
-        <app-button type="submit" [loading]="isSaving()">Đặt lại mật khẩu</app-button>
+        <app-button type="submit" [loading]="isSaving()">
+          <svg lucideKeyRound aria-hidden="true" class="size-4"></svg>
+          Đặt lại mật khẩu
+        </app-button>
       </div>
     </form>
   `,

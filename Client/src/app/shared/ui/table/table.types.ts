@@ -8,6 +8,9 @@ export interface TableColumn<T = unknown> {
   /** Tên hiển thị trên Header */
   header: string;
 
+  /** Ẩn tên cột trên màn hình nhưng vẫn để trình đọc màn hình đọc được, ví dụ cột thao tác */
+  hideHeader?: boolean;
+
   /**
    * Tên property trong data để lấy dữ liệu (vd: "fullName", "user.role.name").
    * Với cột sortable, đây cũng là giá trị sortBy gửi lên API.

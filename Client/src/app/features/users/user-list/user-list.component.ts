@@ -11,16 +11,20 @@ import {
   viewChild,
 } from '@angular/core';
 import { rxResource } from '@angular/core/rxjs-interop';
+import { LucideKeyRound, LucidePencil, LucidePlus } from '@lucide/angular';
 import { UserResponse } from '@core/api';
 import { ToastService } from '@core/services/toast.service';
 import { BadgeComponent } from '@shared/ui/badge/badge.component';
 import { ButtonComponent } from '@shared/ui/button/button.component';
+import { MenuAction, MenuComponent } from '@shared/ui/menu/menu.component';
 import { ModalComponent } from '@shared/ui/modal/modal.component';
+import { PageHeaderComponent } from '@shared/ui/page-header/page-header.component';
 import { DEFAULT_PAGE_SIZE, injectListNavigation, pageAttribute, textAttribute } from '@shared/ui/table/list-query';
 import { TableComponent } from '@shared/ui/table/table.component';
 import { TableColumn } from '@shared/ui/table/table.types';
 import { UserFormComponent } from '../user-form/user-form.component';
 import { UserResetPasswordComponent } from '../user-reset-password/user-reset-password.component';
+import { ROLE_OPTIONS } from '../user-form/user-form.component';
 import { UserService } from '../user.service';
 
 /** Không có nút xoá: tài khoản được khoá bằng trạng thái "Đang hoạt động" để giữ lịch sử. */
@@ -30,9 +34,12 @@ import { UserService } from '../user.service';
     TableComponent,
     ButtonComponent,
     BadgeComponent,
+    MenuComponent,
     ModalComponent,
+    PageHeaderComponent,
     UserFormComponent,
     UserResetPasswordComponent,
+    LucidePlus,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './user-list.component.html',
@@ -63,16 +70,17 @@ export class UserListComponent {
   protected readonly total = computed(() => (this.list.hasValue() ? this.list.value().totalCount : 0));
 
   private readonly statusTemplate = viewChild<TemplateRef<unknown>>('statusTemplate');
+  private readonly roleTemplate = viewChild<TemplateRef<unknown>>('roleTemplate');
   private readonly actionTemplate = viewChild<TemplateRef<unknown>>('actionTemplate');
 
   protected readonly columns = computed<TableColumn<UserResponse>[]>(() => [
-    { key: 'userName', header: 'Tên đăng nhập', sortable: true },
+    { key: 'userName', header: 'Tên đăng nhập', sortable: true, className: 'font-medium' },
     { key: 'fullName', header: 'Họ và tên', sortable: true },
-    { key: 'email', header: 'Email', sortable: true },
-    { key: 'role', header: 'Vai trò' },
+    { key: 'email', header: 'Email', sortable: true, className: 'text-ink-muted' },
+    { key: 'role', header: 'Vai trò', template: this.roleTemplate() },
     { key: 'isActive', header: 'Trạng thái', template: this.statusTemplate() },
-    { key: 'createdAt', header: 'Ngày tạo', type: 'date', format: 'dd/MM/yyyy HH:mm', sortable: true },
-    { key: 'actions', header: '', template: this.actionTemplate(), width: '200px' },
+    { key: 'createdAt', header: 'Ngày tạo', type: 'date', format: 'dd/MM/yyyy', sortable: true },
+    { key: 'actions', header: 'Thao tác', hideHeader: true, template: this.actionTemplate(), width: '56px' },
   ]);
 
   protected readonly isFormOpen = signal(false);
@@ -84,6 +92,17 @@ export class UserListComponent {
       const error = this.list.error();
       if (error) this.toast.fromError(error);
     });
+  }
+
+  protected rowActions(user: UserResponse): MenuAction[] {
+    return [
+      { label: 'Sửa', icon: LucidePencil, run: () => this.openForm(user) },
+      { label: 'Đặt lại mật khẩu', icon: LucideKeyRound, run: () => this.resetting.set(user) },
+    ];
+  }
+
+  protected roleLabel(role: string): string {
+    return ROLE_OPTIONS.find((option) => option.value === role)?.label ?? role;
   }
 
   protected openForm(user: UserResponse | null): void {

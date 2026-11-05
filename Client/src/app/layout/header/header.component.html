@@ -1,66 +1,34 @@
-<header class="flex h-16 items-center justify-between bg-white px-4 shadow-sm z-10 border-b border-gray-200">
-  <div class="flex items-center">
-    <button (click)="layout.toggleSidebar()" class="mr-4 text-gray-600 hover:text-blue-600 md:hidden">
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        fill="none"
-        viewBox="0 0 24 24"
-        stroke-width="1.5"
-        stroke="currentColor"
-        class="w-6 h-6"
-      >
-        <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
-      </svg>
-    </button>
-
+<header class="flex h-14 items-center justify-between gap-4 border-b border-line bg-surface px-4 md:px-6">
+  <div>
     <button
-      (click)="layout.toggleCollapse()"
-      class="hidden text-gray-500 hover:text-blue-600 md:block transition-transform duration-300"
-      [class.rotate-180]="layout.isSidebarCollapsed()"
+      type="button"
+      aria-label="Mở menu"
+      class="flex size-9 items-center justify-center rounded-lg text-ink-muted hover:bg-hover md:hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+      (click)="layout.toggleSidebar()"
     >
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        fill="none"
-        viewBox="0 0 24 24"
-        stroke-width="1.5"
-        stroke="currentColor"
-        class="w-6 h-6"
-      >
-        <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25H12" />
-      </svg>
+      <svg lucidePanelLeft aria-hidden="true" class="size-[18px]"></svg>
+    </button>
+    <button
+      type="button"
+      [attr.aria-label]="layout.isSidebarCollapsed() ? 'Mở rộng menu' : 'Thu gọn menu'"
+      class="hidden size-9 items-center justify-center rounded-lg text-ink-muted hover:bg-hover md:flex focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+      (click)="layout.toggleCollapse()"
+    >
+      <svg lucidePanelLeft aria-hidden="true" class="size-[18px]"></svg>
     </button>
   </div>
 
-  <div class="relative">
-    @if (auth.user(); as user) {
-      <div
-        (click)="toggleUserMenu()"
-        class="flex cursor-pointer items-center gap-3 rounded-full border border-transparent p-1 hover:bg-gray-100 transition-colors"
-      >
-        <div class="text-right hidden sm:block">
-          <div class="text-sm font-semibold text-gray-700">{{ user.fullName }}</div>
-        </div>
-        <img src="/admin.png" alt="Ảnh đại diện" />
-        @if (userMenuOpen()) {
-          <div
-            class="absolute right-0 top-12 mt-2 w-48 origin-top-right rounded-md bg-white py-1 shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none animate-fade-in-down z-50"
-          >
-            <div class="px-4 py-2 border-b text-xs text-gray-400">Tài khoản</div>
-            <a
-              routerLink="/account/password"
-              class="block w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100"
-            >
-              Đổi mật khẩu
-            </a>
-            <button
-              (click)="auth.logout()"
-              class="block w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50"
-            >
-              Đăng xuất
-            </button>
-          </div>
-        }
-      </div>
-    }
-  </div>
+  @if (auth.user(); as user) {
+    <app-menu [items]="accountActions">
+      <span class="flex items-center gap-2.5 p-1 text-sm font-medium text-ink">
+        <span
+          class="flex size-8 items-center justify-center rounded-full bg-line text-[13px] font-semibold text-ink"
+          aria-hidden="true"
+          >{{ initial() }}</span
+        >
+        <span class="hidden sm:inline">{{ user.fullName }}</span>
+        <span class="sr-only sm:hidden">{{ user.fullName }}</span>
+      </span>
+    </app-menu>
+  }
 </header>

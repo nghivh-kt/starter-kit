@@ -1,109 +1,44 @@
 @if (layout.isSidebarOpen()) {
-  <div (click)="layout.closeSidebar()" class="fixed inset-0 z-20 bg-black/50 transition-opacity md:hidden"></div>
+  <div aria-hidden="true" class="fixed inset-0 z-20 bg-slate-900/45 md:hidden" (click)="layout.closeSidebar()"></div>
 }
 
 <aside
-  class="fixed inset-y-0 left-0 z-30 flex flex-col bg-slate-900 text-white transition-all duration-300 md:relative"
+  class="fixed inset-y-0 left-0 z-30 flex w-60 flex-none flex-col gap-6 border-r border-line bg-surface px-3 py-3 transition-[width,translate] duration-200 md:relative md:translate-x-0"
   [class.translate-x-0]="layout.isSidebarOpen()"
   [class.-translate-x-full]="!layout.isSidebarOpen()"
-  [class.md:translate-x-0]="true"
-  [class.w-64]="!layout.isSidebarCollapsed()"
-  [class.md:w-20]="layout.isSidebarCollapsed()"
+  [class.md:w-[68px]]="layout.isSidebarCollapsed()"
 >
-  <div
+  <a
     routerLink="/"
-    class="flex h-16 items-center justify-center border-b border-white/10 font-bold text-xl flex-shrink-0 cursor-pointer"
+    [attr.title]="layout.isSidebarCollapsed() ? 'Starter Kit' : null"
+    class="flex h-10 items-center gap-2.5 overflow-hidden rounded-lg px-2 text-[15px] font-semibold whitespace-nowrap text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
   >
-    <span class="flex h-8 w-8 items-center justify-center rounded-md bg-blue-600 text-sm" aria-hidden="true">SK</span>
+    <span
+      class="flex size-7 flex-none items-center justify-center rounded-lg bg-primary text-xs text-white"
+      aria-hidden="true"
+      >SK</span
+    >
     @if (!layout.isSidebarCollapsed()) {
-      <span class="ml-2 transition-opacity duration-200 whitespace-nowrap"> Starter Kit </span>
+      <span>Starter Kit</span>
     }
-  </div>
+  </a>
 
-  <nav class="flex-1 flex flex-col gap-1 p-3 overflow-y-auto overflow-x-hidden">
-    @for (item of menuItems(); track item) {
-      @if (!item.children) {
-        <a
-          [routerLink]="item.link"
-          routerLinkActive="bg-blue-600 text-white shadow-lg"
-          [routerLinkActiveOptions]="{ exact: item.link === '/' }"
-          (click)="layout.closeSidebar()"
-          (mouseenter)="showTooltip($event, item.label)"
-          (mouseleave)="hideTooltip()"
-          class="flex items-center rounded-lg px-3 py-3 text-slate-300 hover:bg-white/10 hover:text-white transition-colors group cursor-pointer"
-        >
-          <span class="text-xl min-w-[24px] text-center">{{ item.icon }}</span>
-          @if (!layout.isSidebarCollapsed()) {
-            <span class="ml-3 font-medium whitespace-nowrap transition-opacity">
-              {{ item.label }}
-            </span>
-          }
-        </a>
-      }
-      @if (item.children) {
-        <div class="flex flex-col">
-          <div
-            (click)="toggleMenu(item)"
-            (mouseenter)="showTooltip($event, item.label)"
-            (mouseleave)="hideTooltip()"
-            class="flex items-center justify-between rounded-lg px-3 py-3 text-slate-300 hover:bg-white/10 hover:text-white transition-colors cursor-pointer select-none"
-          >
-            <div class="flex items-center">
-              <span class="text-xl min-w-[24px] text-center">{{ item.icon }}</span>
-              @if (!layout.isSidebarCollapsed()) {
-                <span class="ml-3 font-medium whitespace-nowrap transition-opacity">
-                  {{ item.label }}
-                </span>
-              }
-            </div>
-            @if (!layout.isSidebarCollapsed()) {
-              <svg
-                [class.rotate-180]="item.expanded"
-                class="w-4 h-4 transition-transform duration-200"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-              </svg>
-            }
-          </div>
-          @if (item.expanded && !layout.isSidebarCollapsed()) {
-            <div class="flex flex-col gap-1 mt-1 pl-4 ml-3 border-l border-slate-700 overflow-hidden animate-fade-in">
-              @for (child of item.children; track child) {
-                <a
-                  [routerLink]="child.link"
-                  routerLinkActive="bg-blue-600/50 text-white font-medium"
-                  (click)="layout.closeSidebar()"
-                  class="flex items-center rounded-lg px-3 py-2 text-sm text-slate-400 hover:bg-white/10 hover:text-white transition-colors cursor-pointer"
-                >
-                  <span class="text-lg min-w-[20px] text-center mr-2">{{ child.icon }}</span>
-                  <span>{{ child.label }}</span>
-                </a>
-              }
-            </div>
-          }
-        </div>
-      }
+  <nav aria-label="Menu chính" class="flex flex-1 flex-col gap-0.5 overflow-x-hidden overflow-y-auto">
+    @for (item of items(); track item.link) {
+      <a
+        [routerLink]="item.link"
+        routerLinkActive="bg-primary-soft text-primary-strong"
+        ariaCurrentWhenActive="page"
+        [routerLinkActiveOptions]="{ exact: item.link === '/' }"
+        [attr.title]="layout.isSidebarCollapsed() ? item.label : null"
+        (click)="layout.closeSidebar()"
+        class="flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm font-medium whitespace-nowrap text-ink-muted hover:bg-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-inset"
+      >
+        <svg [lucideIcon]="item.icon" aria-hidden="true" class="size-[18px] flex-none"></svg>
+        @if (!layout.isSidebarCollapsed()) {
+          <span>{{ item.label }}</span>
+        }
+      </a>
     }
   </nav>
-
-  <div class="p-4 border-t border-white/10 text-xs text-slate-500 text-center flex-shrink-0">
-    @if (!layout.isSidebarCollapsed()) {
-      <span>v1.0.0</span>
-    }
-    @if (layout.isSidebarCollapsed()) {
-      <span>v1</span>
-    }
-  </div>
-
-  @if (tooltip().visible && layout.isSidebarCollapsed()) {
-    <div
-      class="fixed z-50 left-20 ml-2 rounded bg-slate-800 px-3 py-1.5 text-xs font-medium text-white shadow-xl whitespace-nowrap animate-fade-in"
-      [style.top.px]="tooltip().top"
-    >
-      <div class="absolute top-1/2 -left-1 -mt-1 h-2 w-2 -rotate-45 bg-slate-800"></div>
-      {{ tooltip().label }}
-    </div>
-  }
 </aside>

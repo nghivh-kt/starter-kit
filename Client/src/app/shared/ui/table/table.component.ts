@@ -1,30 +1,53 @@
 import { ChangeDetectionStrategy, Component, computed, input, model, output } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { CurrencyPipe, DatePipe, DecimalPipe, NgClass, NgTemplateOutlet } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import {
+  LucideArrowDown,
+  LucideArrowUp,
+  LucideChevronLeft,
+  LucideChevronRight,
+  LucideChevronsUpDown,
+  LucideSearch,
+} from '@lucide/angular';
 import { ButtonComponent } from '../button/button.component';
 import { CheckboxComponent } from '../checkbox/checkbox.component';
 import { PageEvent, TableColumn } from './table.types';
 
 @Component({
   selector: 'app-table',
-  imports: [CommonModule, FormsModule, CheckboxComponent, ButtonComponent],
+  imports: [
+    CurrencyPipe,
+    DatePipe,
+    DecimalPipe,
+    NgClass,
+    NgTemplateOutlet,
+    FormsModule,
+    CheckboxComponent,
+    ButtonComponent,
+    LucideArrowDown,
+    LucideArrowUp,
+    LucideChevronLeft,
+    LucideChevronRight,
+    LucideChevronsUpDown,
+    LucideSearch,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './table.component.html',
 })
 export class TableComponent<T = unknown> {
-  protected readonly Math = Math;
+  protected readonly skeletonRows = [1, 2, 3, 4, 5];
 
   // --- DỮ LIỆU ---
   readonly data = input<T[]>([]);
   readonly columns = input.required<TableColumn<T>[]>();
   /** Hai chiều: [(selection)]="selectedRows" */
   readonly selection = model<T[]>([]);
-  readonly activeItem = model<T | null>(null);
 
   // --- CẤU HÌNH ---
   readonly loading = input(false);
   readonly selectable = input(false);
   readonly searchable = input(false);
+  readonly searchPlaceholder = input('Tìm kiếm...');
   /** Giá trị ban đầu của ô tìm kiếm, ví dụ lấy từ URL */
   readonly searchValue = input('');
   readonly scrollHeight = input('');
@@ -44,8 +67,7 @@ export class TableComponent<T = unknown> {
   // --- SỰ KIỆN ---
   readonly sortChange = output<{ key: string; direction: 'asc' | 'desc' }>();
   readonly pageChange = output<PageEvent>();
-  readonly rowClick = output<T>();
-  readonly search = output<string>();
+  readonly searchChange = output<string>();
 
   protected readonly selectedSet = computed(() => new Set(this.selection()));
   protected readonly selectedCount = computed(() => this.selection().length);
@@ -80,6 +102,9 @@ export class TableComponent<T = unknown> {
     const start = (this.page() - 1) * this.pageSize();
     return this.sortedData().slice(start, start + this.pageSize());
   });
+
+  protected readonly rangeStart = computed(() => (this.page() - 1) * this.pageSize() + 1);
+  protected readonly rangeEnd = computed(() => Math.min(this.page() * this.pageSize(), this.effectiveTotalRecords()));
 
   protected readonly totalCols = computed(() => this.columns().length + (this.selectable() ? 1 : 0));
 
@@ -143,12 +168,13 @@ export class TableComponent<T = unknown> {
     this.sortChange.emit({ key, direction });
   }
 
-  protected onRowClick(item: T): void {
-    this.activeItem.set(item);
-    this.rowClick.emit(item);
+  protected ariaSort(column: TableColumn<T>): 'ascending' | 'descending' | 'none' | null {
+    if (!column.sortable) return null;
+    if (this.sortKey() !== column.key) return 'none';
+    return this.sortDir() === 'asc' ? 'ascending' : 'descending';
   }
 
   protected onSearch(event: Event): void {
-    this.search.emit((event.target as HTMLInputElement).value);
+    this.searchChange.emit((event.target as HTMLInputElement).value);
   }
 }

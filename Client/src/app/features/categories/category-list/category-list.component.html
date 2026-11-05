@@ -1,31 +1,30 @@
-<div class="flex flex-col h-full bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-  <div class="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
-    <h1 class="text-xl font-bold text-gray-900 tracking-tight">Quản lý danh mục</h1>
-    @if (canEdit()) {
-      <app-button (click)="openForm(null)">Thêm mới</app-button>
-    }
-  </div>
+<app-page-header title="Danh mục" description="Xem, tìm kiếm và quản lý danh mục.">
+  @if (canEdit()) {
+    <app-button (click)="openForm(null)">
+      <svg lucidePlus aria-hidden="true" class="size-4"></svg>
+      Thêm danh mục
+    </app-button>
+  }
+</app-page-header>
 
-  <div class="flex-1 overflow-hidden relative">
-    <app-table
-      [data]="items()"
-      [columns]="columns()"
-      [loading]="list.isLoading()"
-      [searchable]="true"
-      [searchValue]="search()"
-      [pagination]="true"
-      [serverSide]="true"
-      [page]="page()"
-      [pageSize]="pageSize"
-      [totalRecords]="total()"
-      [sortKey]="sortBy()"
-      [sortDir]="desc() ? 'desc' : 'asc'"
-      (search)="navigation.search($event)"
-      (pageChange)="navigation.goToPage($event.page)"
-      (sortChange)="navigation.sort($event)"
-    />
-  </div>
-</div>
+<app-table
+  searchPlaceholder="Tìm theo tên danh mục..."
+  [data]="items()"
+  [columns]="columns()"
+  [loading]="list.isLoading()"
+  [searchable]="true"
+  [searchValue]="search()"
+  [pagination]="true"
+  [serverSide]="true"
+  [page]="page()"
+  [pageSize]="pageSize"
+  [totalRecords]="total()"
+  [sortKey]="sortBy()"
+  [sortDir]="desc() ? 'desc' : 'asc'"
+  (searchChange)="navigation.search($event)"
+  (pageChange)="navigation.goToPage($event.page)"
+  (sortChange)="navigation.sort($event)"
+/>
 
 <ng-template #statusTemplate let-category>
   <app-badge [variant]="category.isActive ? 'success' : 'gray'">
@@ -34,29 +33,29 @@
 </ng-template>
 
 <ng-template #actionTemplate let-category>
-  <div class="flex gap-2">
-    <app-button variant="outline" size="sm" (click)="openForm(category)">Sửa</app-button>
-    <app-button variant="danger" size="sm" (click)="deleting.set(category)">Xoá</app-button>
-  </div>
+  <app-menu [label]="'Thao tác với ' + category.name" [items]="rowActions(category)" />
 </ng-template>
 
 @if (isFormOpen()) {
   <app-modal
     [isOpen]="true"
-    [title]="editing() ? 'Cập nhật danh mục' : 'Thêm mới danh mục'"
+    [title]="editing() ? 'Cập nhật danh mục' : 'Thêm danh mục'"
     size="lg"
-    (close)="isFormOpen.set(false)"
+    (closed)="isFormOpen.set(false)"
   >
     <app-category-form [category]="editing()" (saved)="onSaved()" (cancelled)="isFormOpen.set(false)" />
   </app-modal>
 }
 
 @if (deleting(); as category) {
-  <app-modal [isOpen]="true" title="Xoá danh mục" (close)="deleting.set(null)">
-    <p class="text-sm text-gray-700">Bạn có chắc muốn xoá danh mục "{{ category.name }}"?</p>
-    <div class="mt-4 flex justify-end gap-3">
+  <app-modal [isOpen]="true" title="Xoá danh mục" (closed)="deleting.set(null)">
+    <p class="text-sm text-ink">Bạn có chắc muốn xoá danh mục "{{ category.name }}"?</p>
+    <div class="mt-5 flex justify-end gap-2">
       <app-button variant="outline" (click)="deleting.set(null)">Huỷ</app-button>
-      <app-button variant="danger" [loading]="isDeleting()" (click)="confirmDelete(category)">Xoá</app-button>
+      <app-button variant="danger" [loading]="isDeleting()" (click)="confirmDelete(category)">
+        <svg lucideTrash aria-hidden="true" class="size-4"></svg>
+        Xoá
+      </app-button>
     </div>
   </app-modal>
 }

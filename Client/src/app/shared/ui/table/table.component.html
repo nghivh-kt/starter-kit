@@ -1,23 +1,13 @@
-<div class="relative flex flex-col w-full h-full bg-white border border-gray-200 rounded-lg shadow-sm">
+<section class="rounded-xl border border-line bg-surface">
   @if (searchable()) {
-    <div
-      class="flex flex-col sm:flex-row justify-end items-center p-4 border-b border-gray-100 gap-4 bg-white rounded-t-lg"
-    >
-      <div class="relative w-full sm:w-64">
-        <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-          <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-            />
-          </svg>
-        </div>
+    <div class="border-b border-line px-4 py-3">
+      <div class="relative max-w-xs">
+        <svg lucideSearch aria-hidden="true" class="absolute top-2.5 left-2.5 size-4 text-ink-subtle"></svg>
         <input
-          type="text"
-          class="block w-full px-3 h-8 pl-9 text-sm border border-gray-300 rounded-md bg-gray-50 focus:ring-blue-500 focus:border-blue-500 outline-none placeholder-gray-400"
-          placeholder="Search..."
+          type="search"
+          class="h-9 w-full rounded-lg border border-line-strong bg-surface pr-3 pl-8 text-sm text-ink outline-none placeholder:text-ink-subtle focus:border-primary focus:ring-2 focus:ring-primary/20"
+          [attr.aria-label]="searchPlaceholder()"
+          [placeholder]="searchPlaceholder()"
           [value]="searchValue()"
           (input)="onSearch($event)"
         />
@@ -25,103 +15,104 @@
     </div>
   }
 
-  <div class="overflow-auto flex-1 custom-scrollbar" [style.max-height]="scrollHeight()">
-    <table class="w-full text-sm text-left text-gray-500">
-      <thead class="text-xs text-gray-700 bg-gray-50 border-b sticky top-0 z-10 shadow-sm">
+  <div class="overflow-x-auto" [style.max-height]="scrollHeight()">
+    <table class="w-full text-left text-sm" [attr.aria-busy]="loading()">
+      <thead>
         <tr>
           @if (selectable()) {
-            <th class="px-4 py-2 w-4 bg-gray-50">
+            <th scope="col" class="w-4 border-b border-line px-4 py-2.5">
               <app-checkbox
                 [indeterminate]="isIndeterminate()"
                 [ngModel]="isAllSelected()"
                 (ngModelChange)="toggleSelectAll()"
-              />
+              >
+                <span class="sr-only">Chọn tất cả</span>
+              </app-checkbox>
             </th>
           }
-          @for (col of columns(); track col) {
+          @for (col of columns(); track col.key) {
             <th
               scope="col"
-              class="px-4 py-2 font-semibold tracking-wider whitespace-nowrap bg-gray-50"
+              class="border-b border-line px-4 py-2.5 text-[13px] font-medium whitespace-nowrap text-ink-muted"
               [class]="col.className"
               [style.width]="col.width"
-              [style.min-width]="col.width"
+              [attr.aria-sort]="ariaSort(col)"
             >
-              <div class="flex items-center gap-1 select-none cursor-pointer group" (click)="handleSort(col)">
+              @if (col.sortable) {
+                <button
+                  type="button"
+                  class="inline-flex items-center gap-1 rounded hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                  [class.text-ink]="sortKey() === col.key"
+                  (click)="handleSort(col)"
+                >
+                  {{ col.header }}
+                  @if (sortKey() !== col.key) {
+                    <svg lucideChevronsUpDown aria-hidden="true" class="size-3.5 text-ink-subtle"></svg>
+                  } @else if (sortDir() === 'asc') {
+                    <svg lucideArrowUp aria-hidden="true" class="size-3.5"></svg>
+                  } @else {
+                    <svg lucideArrowDown aria-hidden="true" class="size-3.5"></svg>
+                  }
+                </button>
+              } @else if (col.hideHeader) {
+                <span class="sr-only">{{ col.header }}</span>
+              } @else {
                 {{ col.header }}
-                @if (col.sortable) {
-                  <span class="text-gray-300 flex flex-col text-[10px] leading-[0.5] group-hover:text-gray-500">
-                    <span [class.text-blue-600]="sortKey() === col.key && sortDir() === 'asc'">▲</span>
-                    <span [class.text-blue-600]="sortKey() === col.key && sortDir() === 'desc'">▼</span>
-                  </span>
-                }
-              </div>
+              }
             </th>
           }
         </tr>
       </thead>
 
-      <tbody class="divide-y divide-gray-100">
+      <tbody class="divide-y divide-slate-100">
         @if (loading()) {
-          <tr>
-            <td [attr.colspan]="totalCols()" class="p-10 text-center">
-              <div class="flex justify-center items-center gap-2 text-blue-600">
-                <span class="animate-spin h-5 w-5 border-2 border-current border-t-transparent rounded-full"></span>
-                Loading...
-              </div>
-            </td>
-          </tr>
-        }
-
-        @if (!loading() && paginatedData().length === 0) {
-          <tr>
-            <td [attr.colspan]="totalCols()" class="p-10 text-center text-gray-500 italic">No data found.</td>
-          </tr>
-        }
-
-        @for (item of paginatedData(); track trackByFn(i, item); let i = $index) {
-          <tr
-            class="hover:bg-blue-50/50 transition-colors cursor-pointer"
-            [class.bg-blue-100]="activeItem() === item"
-            [class.hover:bg-blue-100]="activeItem() === item"
-            [ngClass]="rowClassFn() ? rowClassFn()!(item) : ''"
-            (click)="onRowClick(item)"
-          >
-            @if (selectable()) {
-              <td class="px-4 py-2 w-4" (click)="$event.stopPropagation()">
-                <app-checkbox [ngModel]="isSelected(item)" (ngModelChange)="toggleSelection(item)" />
+          @for (row of skeletonRows; track row) {
+            <tr aria-hidden="true">
+              <td [attr.colspan]="totalCols()" class="px-4 py-3.5">
+                <div class="h-3.5 animate-pulse rounded bg-slate-100"></div>
               </td>
-            }
-            @for (col of columns(); track col) {
-              <td class="px-4 py-2 text-gray-700" [class]="col.className">
-                @if (col.template) {
-                  <ng-container *ngTemplateOutlet="col.template; context: { $implicit: item, index: i }" />
-                } @else {
-                  @switch (col.type) {
-                    @case ('date') {
-                      <span class="text-gray-700">
-                        {{ getCellValue(item, col.key) | date: col.format || 'dd/MM/yyyy' }}
-                      </span>
-                    }
-                    @case ('currency') {
-                      <span class="font-medium text-gray-900">
-                        {{ getCellValue(item, col.key) | currency: col.format || 'USD' }}
-                      </span>
-                    }
-                    @case ('number') {
-                      <span class="text-gray-900">
+            </tr>
+          }
+        } @else {
+          @for (item of paginatedData(); track trackByFn($index, item); let i = $index) {
+            <tr class="hover:bg-canvas" [ngClass]="rowClassFn() ? rowClassFn()!(item) : ''">
+              @if (selectable()) {
+                <td class="w-4 px-4 py-3">
+                  <app-checkbox [ngModel]="isSelected(item)" (ngModelChange)="toggleSelection(item)">
+                    <span class="sr-only">Chọn dòng {{ i + 1 }}</span>
+                  </app-checkbox>
+                </td>
+              }
+              @for (col of columns(); track col.key) {
+                <td class="px-4 py-3 text-ink" [class]="col.className">
+                  @if (col.template) {
+                    <ng-container *ngTemplateOutlet="col.template; context: { $implicit: item, index: i }" />
+                  } @else {
+                    @switch (col.type) {
+                      @case ('date') {
+                        <span class="whitespace-nowrap text-ink-muted">
+                          {{ getCellValue(item, col.key) | date: col.format || 'dd/MM/yyyy' }}
+                        </span>
+                      }
+                      @case ('currency') {
+                        {{ getCellValue(item, col.key) | currency: col.format || 'VND' }}
+                      }
+                      @case ('number') {
                         {{ getCellValue(item, col.key) | number: col.format || '1.0-2' }}
-                      </span>
-                    }
-                    @default {
-                      <span class="text-gray-700">
+                      }
+                      @default {
                         {{ getCellValue(item, col.key) }}
-                      </span>
+                      }
                     }
                   }
-                }
-              </td>
-            }
-          </tr>
+                </td>
+              }
+            </tr>
+          } @empty {
+            <tr>
+              <td [attr.colspan]="totalCols()" class="px-4 py-12 text-center text-ink-muted">Không có dữ liệu</td>
+            </tr>
+          }
         }
       </tbody>
     </table>
@@ -129,35 +120,33 @@
 
   @if (pagination()) {
     <div
-      class="flex flex-col sm:flex-row items-center justify-between px-4 py-2 border-t bg-gray-50 gap-2 rounded-b-lg"
+      class="flex flex-wrap items-center justify-between gap-3 border-t border-line px-4 py-2.5 text-[13px] text-ink-muted"
     >
-      <span class="text-sm text-gray-600">
-        Showing
-        <span class="font-medium text-gray-900">{{
-          effectiveTotalRecords() === 0 ? 0 : (page() - 1) * pageSize() + 1
-        }}</span>
-        to
-        <span class="font-medium text-gray-900">{{ Math.min(page() * pageSize(), effectiveTotalRecords()) }}</span>
-        of
-        <span class="font-medium text-gray-900">{{ effectiveTotalRecords() }}</span> entries
+      <span>
+        @if (effectiveTotalRecords() > 0) {
+          Hiển thị {{ rangeStart() }}–{{ rangeEnd() }} trong {{ effectiveTotalRecords() }}
+        } @else {
+          Không có mục nào
+        }
         @if (selectedCount() > 0) {
-          <span class="ml-2 px-2 py-0.5 bg-blue-100 text-blue-700 rounded text-xs font-medium animate-fade-in">
-            {{ selectedCount() }} selected
-          </span>
+          · Đã chọn {{ selectedCount() }}
         }
       </span>
-      <div class="flex gap-2">
-        <app-button variant="outline" size="sm" [disabled]="page() === 1 || loading()" (click)="changePage(page() - 1)"
-          >Previous</app-button
-        >
+      <nav aria-label="Phân trang" class="flex gap-2">
+        <app-button variant="outline" size="sm" [disabled]="page() === 1 || loading()" (click)="changePage(page() - 1)">
+          <svg lucideChevronLeft aria-hidden="true" class="size-3.5"></svg>
+          Trước
+        </app-button>
         <app-button
           variant="outline"
           size="sm"
           [disabled]="page() * pageSize() >= effectiveTotalRecords() || loading()"
           (click)="changePage(page() + 1)"
-          >Next</app-button
         >
-      </div>
+          Sau
+          <svg lucideChevronRight aria-hidden="true" class="size-3.5"></svg>
+        </app-button>
+      </nav>
     </div>
   }
-</div>
+</section>
