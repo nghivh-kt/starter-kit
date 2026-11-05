@@ -13,7 +13,7 @@ namespace API.Controllers
     /// Validate request do FluentValidationFilter xử lý; lỗi nghiệp vụ do GlobalExceptionHandler trả về (Problem Details).
     /// ProducesResponseType là nguồn sinh kiểu TypeScript cho Client: đổi response thì chạy lại "npm run api:gen".
     /// </summary>
-    [Route("api/[controller]")]
+    [Route("api/categories")]
     [ApiController]
     public class CategoriesController : ControllerBase
     {

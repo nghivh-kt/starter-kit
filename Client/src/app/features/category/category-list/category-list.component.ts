@@ -63,7 +63,7 @@ export class CategoryListComponent {
           this.filteredCategories.set(res);
         },
         error: (err) => {
-          this.toast.error(err.error?.message || err.message);
+          this.toast.fromError(err);
         },
       });
   }
@@ -122,7 +122,7 @@ export class CategoryListComponent {
             this.loadAllCategories();
           },
           error: (err) => {
-            this.toast.error(err.error?.message || err.message);
+            this.toast.fromError(err);
           },
         });
     } else {
@@ -137,7 +137,7 @@ export class CategoryListComponent {
             this.loadAllCategories();
           },
           error: (err) => {
-            this.toast.error(err.error?.message || err.message);
+            this.toast.fromError(err);
           },
         });
     }

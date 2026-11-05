@@ -21,7 +21,7 @@
   </div>
 
   <nav class="flex-1 flex flex-col gap-1 p-3 overflow-y-auto overflow-x-hidden">
-    @for (item of menuItems; track item) {
+    @for (item of menuItems(); track item) {
       @if (!item.children) {
         <a
           [routerLink]="item.link"

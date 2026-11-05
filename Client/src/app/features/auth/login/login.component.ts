@@ -1,72 +1,56 @@
-import { Component, inject, OnInit, signal, ChangeDetectionStrategy } from '@angular/core';
-
+import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
-import { AuthService } from '@core/services/auth.service';
-import { ToastService } from '@core/services/toast.service';
-import { finalize } from 'rxjs/operators';
-import { InputComponent } from '@shared/ui/input/input.component';
+import { finalize } from 'rxjs';
+import { AuthService } from '@core/auth/auth.service';
+import { ApiError } from '@core/errors/api-error';
 import { ButtonComponent } from '@shared/ui/button/button.component';
+import { InputComponent } from '@shared/ui/input/input.component';
 
 @Component({
   selector: 'app-login',
-  standalone: true,
   imports: [ReactiveFormsModule, InputComponent, ButtonComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './login.component.html',
 })
-export class LoginComponent implements OnInit {
-  private fb = inject(FormBuilder);
-  private authService = inject(AuthService);
+export class LoginComponent {
+  private auth = inject(AuthService);
   private router = inject(Router);
   private route = inject(ActivatedRoute);
-  private toast = inject(ToastService);
 
-  // State quản lý UI
-  isLoading = signal(false);
+  protected readonly isLoading = signal(false);
+  protected readonly errorMessage = signal<string | null>(null);
 
-  // Biến để lưu đường dẫn muốn quay lại
-  returnUrl = '';
-
-  form = this.fb.group({
-    username: ['', Validators.required],
+  protected readonly form = inject(FormBuilder).nonNullable.group({
+    userName: ['', Validators.required],
     password: ['', Validators.required],
   });
 
-  ngOnInit(): void {
-    this.returnUrl = this.route.snapshot.queryParams['returnUrl'] || '/';
-  }
-
-  // Helper để check validation trong HTML cho gọn
-  isFieldInvalid(field: string): boolean {
-    const control = this.form.get(field);
-    return !!(control && control.invalid && (control.dirty || control.touched));
-  }
-
-  submit() {
-    // 1. Nếu form invalid thì mark touched để hiện lỗi đỏ
+  protected submit(): void {
     if (this.form.invalid) {
       this.form.markAllAsTouched();
       return;
     }
 
-    // 2. Reset lỗi cũ và bật loading
+    this.errorMessage.set(null);
     this.isLoading.set(true);
 
-    const { username, password } = this.form.getRawValue();
-
-    // 3. Gọi API
-    this.authService
-      .login(username!, password!)
+    const { userName, password } = this.form.getRawValue();
+    this.auth
+      .login(userName, password)
       .pipe(finalize(() => this.isLoading.set(false)))
       .subscribe({
-        next: () => {
-          this.router.navigateByUrl(this.returnUrl);
-        },
-        error: (err) => {
-          const msg = 'Username hoặc password không đúng';
-          this.toast.error(msg);
+        next: () => this.router.navigateByUrl(this.returnUrl()),
+        // 403, 429 và lỗi hệ thống đã có toast từ interceptor; sai mật khẩu thì hiện ngay trong form
+        error: (error: unknown) => {
+          if (error instanceof ApiError && !error.notified) this.errorMessage.set(error.message);
         },
       });
+  }
+
+  /** Chỉ chấp nhận đường dẫn nội bộ: returnUrl nằm trên URL nên ai cũng có thể sửa. */
+  private returnUrl(): string {
+    const url: string = this.route.snapshot.queryParams['returnUrl'] ?? '/';
+    return url.startsWith('/') && !url.startsWith('//') ? url : '/';
   }
 }

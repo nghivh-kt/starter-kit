@@ -94,6 +94,8 @@ export class InputComponent implements ControlValueAccessor {
   protected readonly errorMessage = computed(() => {
     const customError = this.customError();
     if (customError) return customError;
+    const serverError = this.state.errors()?.['server'];
+    if (serverError) return serverError;
 
     const errors = this.state.errors();
     if (!errors) return 'Invalid value';

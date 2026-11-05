@@ -68,8 +68,7 @@ export class UserListComponent {
           this.filterdUsers.set(res);
         },
         error: (err) => {
-          console.error(err.error?.message || err.message);
-          this.toast.error(err.error?.message || err.message);
+          this.toast.fromError(err);
         },
       });
   }
@@ -114,8 +113,6 @@ export class UserListComponent {
       isActive: true,
     };
 
-    console.log('Payload', payload);
-
     if (this.selectedUser()) {
       // Edit
       const id = this.selectedUser()!.id;
@@ -129,7 +126,7 @@ export class UserListComponent {
             this.loadAllUsers();
           },
           error: (err) => {
-            this.toast.error(err.error?.message || err.message);
+            this.toast.fromError(err);
           },
         });
     } else {
@@ -144,7 +141,7 @@ export class UserListComponent {
             this.loadAllUsers();
           },
           error: (err) => {
-            this.toast.error(err.error?.message || err.message);
+            this.toast.fromError(err);
           },
         });
     }

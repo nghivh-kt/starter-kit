@@ -32,14 +32,13 @@
   </div>
 
   <div class="relative">
-    @if (currentUser$ | async; as user) {
+    @if (auth.user(); as user) {
       <div
         (click)="toggleUserMenu()"
         class="flex cursor-pointer items-center gap-3 rounded-full border border-transparent p-1 hover:bg-gray-100 transition-colors"
       >
         <div class="text-right hidden sm:block">
-          <div class="text-sm font-semibold text-gray-700">{{ user.fullname }}</div>
-          <!-- <div class="text-xs text-gray-500">{{user.username}} | {{user.section}}</div> -->
+          <div class="text-sm font-semibold text-gray-700">{{ user.fullName }}</div>
         </div>
         <img src="/admin.png" alt="Ảnh đại diện" />
         @if (userMenuOpen()) {
@@ -50,19 +49,15 @@
             <button class="block w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100">
               Hồ sơ cá nhân
             </button>
-            <button (click)="logout()" class="block w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50">
+            <button
+              (click)="auth.logout()"
+              class="block w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50"
+            >
               Đăng xuất
             </button>
           </div>
         }
       </div>
-    } @else {
-      <a
-        routerLink="/auth/login"
-        class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors shadow-sm"
-      >
-        Đăng nhập
-      </a>
     }
   </div>
 </header>

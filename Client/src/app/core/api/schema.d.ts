@@ -4,7 +4,7 @@
  */
 
 export interface paths {
-    "/api/Auth/login": {
+    "/api/auth/login": {
         parameters: {
             query?: never;
             header?: never;
@@ -92,7 +92,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/Auth/refresh": {
+    "/api/auth/refresh": {
         parameters: {
             query?: never;
             header?: never;
@@ -180,7 +180,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/Auth/logout": {
+    "/api/auth/logout": {
         parameters: {
             query?: never;
             header?: never;
@@ -255,7 +255,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/Auth/logout-all": {
+    "/api/auth/logout-all": {
         parameters: {
             query?: never;
             header?: never;
@@ -324,7 +324,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/Auth/change-password": {
+    "/api/auth/change-password": {
         parameters: {
             query?: never;
             header?: never;
@@ -408,7 +408,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/Auth/me": {
+    "/api/auth/me": {
         parameters: {
             query?: never;
             header?: never;
@@ -481,7 +481,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/Categories": {
+    "/api/categories": {
         parameters: {
             query?: never;
             header?: never;
@@ -633,7 +633,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/Categories/{id}": {
+    "/api/categories/{id}": {
         parameters: {
             query?: never;
             header?: never;
@@ -864,7 +864,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/Users": {
+    "/api/users": {
         parameters: {
             query?: never;
             header?: never;
@@ -1017,7 +1017,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/Users/{id}": {
+    "/api/users/{id}": {
         parameters: {
             query?: never;
             header?: never;
@@ -1175,7 +1175,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/Users/{id}/reset-password": {
+    "/api/users/{id}/reset-password": {
         parameters: {
             query?: never;
             header?: never;

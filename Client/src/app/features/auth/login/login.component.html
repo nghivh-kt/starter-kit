@@ -6,9 +6,13 @@
     </div>
 
     <form [formGroup]="form" (ngSubmit)="submit()" class="flex flex-col gap-5">
-      <app-input label="Username" formControlName="username" />
+      <app-input label="Username" formControlName="userName" />
 
       <app-input label="Password" type="password" formControlName="password" />
+
+      @if (errorMessage(); as message) {
+        <p class="text-sm text-red-600" role="alert">{{ message }}</p>
+      }
 
       <app-button
         type="submit"

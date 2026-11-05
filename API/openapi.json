@@ -5,7 +5,7 @@
     "version": "1.0"
   },
   "paths": {
-    "/api/Auth/login": {
+    "/api/auth/login": {
       "post": {
         "tags": [
           "Auth"
@@ -103,7 +103,7 @@
         }
       }
     },
-    "/api/Auth/refresh": {
+    "/api/auth/refresh": {
       "post": {
         "tags": [
           "Auth"
@@ -201,7 +201,7 @@
         }
       }
     },
-    "/api/Auth/logout": {
+    "/api/auth/logout": {
       "post": {
         "tags": [
           "Auth"
@@ -272,7 +272,7 @@
         }
       }
     },
-    "/api/Auth/logout-all": {
+    "/api/auth/logout-all": {
       "post": {
         "tags": [
           "Auth"
@@ -324,7 +324,7 @@
         }
       }
     },
-    "/api/Auth/change-password": {
+    "/api/auth/change-password": {
       "post": {
         "tags": [
           "Auth"
@@ -405,7 +405,7 @@
         }
       }
     },
-    "/api/Auth/me": {
+    "/api/auth/me": {
       "get": {
         "tags": [
           "Auth"
@@ -474,7 +474,7 @@
         }
       }
     },
-    "/api/Categories": {
+    "/api/categories": {
       "get": {
         "tags": [
           "Categories"
@@ -690,7 +690,7 @@
         }
       }
     },
-    "/api/Categories/{id}": {
+    "/api/categories/{id}": {
       "get": {
         "tags": [
           "Categories"
@@ -968,7 +968,7 @@
         }
       }
     },
-    "/api/Users": {
+    "/api/users": {
       "get": {
         "tags": [
           "Users"
@@ -1191,7 +1191,7 @@
         }
       }
     },
-    "/api/Users/{id}": {
+    "/api/users/{id}": {
       "get": {
         "tags": [
           "Users"
@@ -1388,7 +1388,7 @@
         }
       }
     },
-    "/api/Users/{id}/reset-password": {
+    "/api/users/{id}/reset-password": {
       "put": {
         "tags": [
           "Users"

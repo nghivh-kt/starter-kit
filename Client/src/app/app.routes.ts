@@ -1,13 +1,11 @@
 import { Routes } from '@angular/router';
-import { authGuard } from '@core/guards/auth.guard';
-import { publicGuard } from '@core/guards/public.guard';
-import { adminGuard } from '@core/guards/admin-guard';
+import { authGuard, publicGuard, roleGuard } from '@core/auth/auth.guards';
 
 export const routes: Routes = [
   // --- PUBLIC ROUTES ---
   {
     path: 'auth/login',
-    canActivate: [publicGuard], // Đã đăng nhập thì không vào trang này nữa
+    canActivate: [publicGuard],
     loadComponent: () => import('./features/auth/login/login.component').then((m) => m.LoginComponent),
   },
 
@@ -24,7 +22,8 @@ export const routes: Routes = [
       },
       {
         path: 'user',
-        canActivate: [adminGuard],
+        canActivate: [roleGuard],
+        data: { roles: ['Admin'] },
         loadComponent: () => import('./features/user/user-list/user-list.component').then((m) => m.UserListComponent),
       },
       {
@@ -32,9 +31,10 @@ export const routes: Routes = [
         loadComponent: () =>
           import('./features/category/category-list/category-list.component').then((m) => m.CategoryListComponent),
       },
+      {
+        path: '**',
+        loadComponent: () => import('./features/not-found/not-found.component').then((m) => m.NotFoundComponent),
+      },
     ],
   },
-
-  // --- FALLBACK ---
-  { path: '**', redirectTo: '' },
 ];

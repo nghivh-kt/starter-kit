@@ -63,7 +63,6 @@ export class CategoryFormComponent {
       return;
     }
 
-    console.log('Category-Form', this.categoryForm.getRawValue());
     this.save.emit(this.categoryForm.getRawValue());
   }
 

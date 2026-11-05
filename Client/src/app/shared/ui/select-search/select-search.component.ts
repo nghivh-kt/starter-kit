@@ -298,6 +298,8 @@ export class SelectSearchComponent<T = unknown> implements ControlValueAccessor 
   protected readonly errorMessage = computed(() => {
     const customError = this.customError();
     if (customError) return customError;
+    const serverError = this.state.errors()?.['server'];
+    if (serverError) return serverError;
     return this.state.errors()?.['required'] ? `${this.label() || 'This field'} is required` : 'Invalid value';
   });
 

@@ -1,8 +1,7 @@
-import { Component, inject, signal, ChangeDetectionStrategy } from '@angular/core';
-
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { RouterModule } from '@angular/router';
+import { AuthService } from '@core/auth/auth.service';
 import { LayoutService } from '@core/services/layout.service';
-import { AuthService } from '@core/services/auth.service';
 
 // Định nghĩa cấu trúc 1 item trong menu
 export interface MenuItem {
@@ -39,8 +38,9 @@ export class SidebarComponent {
     { label: 'Danh mục', icon: '🗂️', link: '/category' },
   ];
 
-  menuItems: MenuItem[] = this.allMenuItems.filter(
-    (item) => !item.roles || item.roles.some((role) => this.authService.hasRole(role)),
+  // Lọc theo signal: menu tự cập nhật khi thông tin user thay đổi
+  menuItems = computed(() =>
+    this.allMenuItems.filter((item) => !item.roles || item.roles.some((role) => this.authService.hasRole(role))),
   );
 
   // State quản lý Tooltip

@@ -8,7 +8,7 @@ using System.Net.Mime;
 
 namespace API.Controllers
 {
-    [Route("api/[controller]")]
+    [Route("api/users")]
     [ApiController]
     [Authorize(Roles = Roles.Admin)]
     public class UsersController : ControllerBase

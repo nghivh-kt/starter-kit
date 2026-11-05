@@ -11,7 +11,8 @@ using System.Net.Mime;
 
 namespace API.Controllers
 {
-    [Route("api/[controller]")]
+    // Viết thường, không dùng [controller]: đường dẫn cookie phân biệt hoa thường, gọi /api/Auth thì cookie Path=/api/auth không được gửi
+    [Route("api/auth")]
     [ApiController]
     public class AuthController : ControllerBase
     {

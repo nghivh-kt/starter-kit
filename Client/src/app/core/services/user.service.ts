@@ -1,7 +1,7 @@
 import { inject, Injectable } from '@angular/core';
 import { UserDto, UserUpsert } from '@core/models/user.model';
 import { Observable } from 'rxjs';
-import { ApiHttpService } from './api-http.service';
+import { ApiHttpService } from '@core/http/api-http.service';
 
 @Injectable({
   providedIn: 'root',

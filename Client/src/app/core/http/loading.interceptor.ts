@@ -1,14 +1,13 @@
 import { HttpInterceptorFn } from '@angular/common/http';
 import { inject } from '@angular/core';
-import { LoadingService } from '@core/services/loading.service';
 import { finalize } from 'rxjs';
+import { LoadingService } from '@core/services/loading.service';
+import { BACKGROUND_REQUEST } from './http-context';
 
 export const loadingInterceptor: HttpInterceptorFn = (req, next) => {
+  if (req.context.get(BACKGROUND_REQUEST)) return next(req);
+
   const loadingService = inject(LoadingService);
-
-  // Bỏ qua loading cho các request chạy ngầm (nếu cần)
-  // if (req.headers.has('X-Skip-Loading')) return next(req);
-
   loadingService.show();
 
   return next(req).pipe(finalize(() => loadingService.hide()));

@@ -100,6 +100,8 @@ export class CheckboxComponent implements ControlValueAccessor {
   protected readonly errorMessage = computed(() => {
     const customError = this.customError();
     if (customError) return customError;
+    const serverError = this.state.errors()?.['server'];
+    if (serverError) return serverError;
     return this.state.errors()?.['requiredTrue'] ? 'This field must be checked' : 'Invalid value';
   });
 

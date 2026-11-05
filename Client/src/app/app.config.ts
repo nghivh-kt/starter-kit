@@ -1,14 +1,23 @@
-import { ApplicationConfig, ErrorHandler, LOCALE_ID, provideBrowserGlobalErrorListeners } from '@angular/core';
-import { provideRouter, withComponentInputBinding } from '@angular/router';
-import { routes } from './app.routes';
-import { provideHttpClient, withInterceptors } from '@angular/common/http';
-import { authInterceptor } from '@core/interceptors/auth.interceptor';
-import { loadingInterceptor } from '@core/interceptors/loading.interceptor';
-import { GlobalErrorHandler } from '@core/handlers/global-error.handler';
+import {
+  ApplicationConfig,
+  ErrorHandler,
+  inject,
+  LOCALE_ID,
+  provideAppInitializer,
+  provideBrowserGlobalErrorListeners,
+} from '@angular/core';
 import { registerLocaleData } from '@angular/common';
+import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import localeVi from '@angular/common/locales/vi';
+import { provideRouter, withComponentInputBinding } from '@angular/router';
+import { authInterceptor } from '@core/auth/auth.interceptor';
+import { AuthService } from '@core/auth/auth.service';
+import { apiErrorInterceptor } from '@core/errors/api-error.interceptor';
+import { GlobalErrorHandler } from '@core/errors/global-error.handler';
+import { loadingInterceptor } from '@core/http/loading.interceptor';
+import { routes } from './app.routes';
 
-registerLocaleData(localeVi); // Đăng ký dữ liệu tiếng Việt
+registerLocaleData(localeVi);
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -17,12 +26,11 @@ export const appConfig: ApplicationConfig = {
 
     provideBrowserGlobalErrorListeners(),
     provideRouter(routes, withComponentInputBinding()),
-    provideHttpClient(
-      withInterceptors([
-        authInterceptor, // Chạy trước
-        loadingInterceptor, // Chạy sau để đếm request
-      ]),
-    ),
+    // Thứ tự có ý nghĩa, response đi ngược lại danh sách này:
+    // authInterceptor phải thấy HttpErrorResponse gốc để xử lý 401 trước khi apiErrorInterceptor đổi thành ApiError
+    provideHttpClient(withInterceptors([loadingInterceptor, apiErrorInterceptor, authInterceptor])),
     { provide: ErrorHandler, useClass: GlobalErrorHandler },
+    // Khôi phục phiên trước lần điều hướng đầu tiên, để guard biết người dùng đã đăng nhập hay chưa
+    provideAppInitializer(() => inject(AuthService).initialize()),
   ],
 };

@@ -2,14 +2,31 @@
 
 Giao diện Angular của Fullstack Starter Kit, dùng cùng API trong thư mục `API/`.
 
-Dự án đang được chỉnh để khớp với API. Việc gọi API (đăng nhập, phân trang, thông báo lỗi) sẽ hoạt động đầy đủ sau khi hoàn thành các bước tiếp theo.
-
 ## Chạy
+
+Chạy API trước (xem README ở thư mục gốc), rồi:
 
 ```bash
 npm install
 npm start      # http://localhost:4200
 ```
+
+`proxy.conf.json` chuyển mọi request `/api` sang API ở `http://localhost:5157`, nên trình duyệt thấy Client và API cùng một origin. Production cũng theo mô hình này. Không cần file environment: một bản build dùng được cho mọi môi trường.
+
+## Đăng nhập
+
+- Access token chỉ nằm trong bộ nhớ (`AuthService`), không lưu localStorage. Refresh token nằm trong cookie HttpOnly do API quản lý.
+- Mở app hoặc F5: `AuthService.initialize()` đổi cookie lấy access token mới trước lần điều hướng đầu tiên.
+- Gặp 401: `authInterceptor` refresh rồi gửi lại request đúng một lần. Nhiều request cùng lúc dùng chung một lần refresh; nhiều tab xếp hàng bằng Web Locks.
+
+## Xử lý lỗi
+
+Mọi lỗi HTTP đến component đều là `ApiError` (`message`, `code`, `errors`, `traceId`).
+
+- Mất mạng, 403, 429, 5xx: `apiErrorInterceptor` tự hiện toast.
+- Các lỗi khác: gọi `toast.fromError(error)` trong nhánh `error`. Hàm này không báo trùng lỗi đã có toast.
+- Lỗi theo field (400): `applyApiErrors(form, error)` gán lỗi vào đúng ô của form.
+- Request chạy ngầm: đặt `BACKGROUND_REQUEST` trong `HttpContext` để không hiện thanh tiến trình và toast.
 
 ## Lệnh thường dùng
 

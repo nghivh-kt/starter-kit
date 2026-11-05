@@ -56,13 +56,7 @@
                 "scripts": true,
                 "styles": true,
                 "fonts": false
-              },
-              "fileReplacements": [
-                {
-                  "replace": "src/environment.development.ts",
-                  "with": "src/environment.ts"
-                }
-              ]
+              }
             },
             "development": {
               "optimization": false,
@@ -88,6 +82,9 @@
         },
         "serve": {
           "builder": "@angular/build:dev-server",
+          "options": {
+            "proxyConfig": "proxy.conf.json"
+          },
           "configurations": {
             "production": {
               "buildTarget": "starter-kit-client:build:production"
