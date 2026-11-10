@@ -4,6 +4,7 @@ import { LucideCheck, LucidePlus } from '@lucide/angular';
 import { finalize } from 'rxjs';
 import { UserResponse } from '@core/api';
 import { Roles } from '@core/auth/roles';
+import { ApiError } from '@core/errors/api-error';
 import { applyApiErrors } from '@core/errors/form-errors';
 import { ToastService } from '@core/services/toast.service';
 import { passwordValidators } from '@core/validators/password.validators';
@@ -88,7 +89,7 @@ export class UserFormComponent implements OnInit {
 
     this.isSaving.set(true);
     const save = user
-      ? this.users.update(user.id, { fullName, role, isActive })
+      ? this.users.update(user.id, { fullName, role, isActive, rowVersion: user.rowVersion })
       : this.users.create({ userName, fullName, email, password, role });
 
     save.pipe(finalize(() => this.isSaving.set(false))).subscribe({
@@ -96,9 +97,18 @@ export class UserFormComponent implements OnInit {
         this.toast.success(user ? 'Cập nhật thành công' : 'Thêm mới thành công');
         this.saved.emit();
       },
-      error: (error: unknown) => {
-        if (!applyApiErrors(this.form, error)) this.toast.fromError(error);
-      },
+      error: (error: unknown) => this.handleError(error),
     });
+  }
+
+  private handleError(error: unknown): void {
+    if (applyApiErrors(this.form, error)) return;
+
+    this.toast.fromError(error);
+
+    // Người dùng đã bị admin khác sửa: dữ liệu trong form đã cũ, lưu lại vẫn sẽ lỗi. Đóng form để tải danh sách mới.
+    if (error instanceof ApiError && error.status === 409 && this.isEdit()) {
+      this.saved.emit();
+    }
   }
 }

@@ -112,6 +112,11 @@ namespace API.Services.Implementations
             // Tracking: EF chỉ UPDATE các cột thay đổi; UpdatedAt do EFDbContext tự gán
             var existingUser = await FindTrackedAsync(id, ct);
 
+            // Admin đang sửa trên dữ liệu cũ. Trường hợp người khác lưu ngay sau dòng này thì EF phát hiện lúc UPDATE
+            // và GlobalExceptionHandler cũng trả 409.
+            if (!existingUser.RowVersion.SequenceEqual(request.RowVersion))
+                throw new ConflictException("Người dùng đã được người khác cập nhật. Vui lòng tải lại rồi thử lại.");
+
             // IsActive không gửi (null) => giữ nguyên, tránh việc client thiếu field vô tình khoá tài khoản
             var newIsActive = request.IsActive ?? existingUser.IsActive;
             var isBeingDeactivated = existingUser.IsActive && !newIsActive;

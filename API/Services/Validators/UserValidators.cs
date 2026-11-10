@@ -58,6 +58,8 @@ namespace API.Services.Validators
                 .NotEmpty().WithMessage("Role là bắt buộc.")
                 .Must(role => Roles.All.Contains(role))
                 .WithMessage($"Role phải là một trong: {string.Join(", ", Roles.All)}.");
+
+            RuleFor(x => x.RowVersion).NotEmpty().WithMessage("Thiếu phiên bản dữ liệu. Vui lòng tải lại trang rồi thử lại.");
         }
     }
 

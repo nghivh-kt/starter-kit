@@ -3,6 +3,7 @@ import { HttpTestingController, provideHttpClientTesting } from '@angular/common
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { UserResponse } from '@core/api';
 import { apiErrorInterceptor } from '@core/errors/api-error.interceptor';
+import { ToastService } from '@core/services/toast.service';
 import { UserFormComponent } from './user-form.component';
 
 const LOCKED_USER: UserResponse = {
@@ -13,6 +14,7 @@ const LOCKED_USER: UserResponse = {
   role: 'User',
   isActive: false,
   createdAt: '2026-01-01T00:00:00Z',
+  rowVersion: 'AAAAAAAAB9E=',
 };
 
 describe('UserFormComponent', () => {
@@ -49,8 +51,32 @@ describe('UserFormComponent', () => {
 
     const request = mock.expectOne('/api/users/5');
     expect(request.request.method).toBe('PUT');
-    expect(request.request.body).toEqual({ fullName: 'Nguyễn Văn A', role: 'User', isActive: false });
+    expect(request.request.body).toEqual({
+      fullName: 'Nguyễn Văn A',
+      role: 'User',
+      isActive: false,
+      rowVersion: 'AAAAAAAAB9E=',
+    });
     request.flush(LOCKED_USER);
+  });
+
+  it('người dùng đã bị admin khác sửa (409): báo lỗi và đóng form để tải lại', async () => {
+    await setup(LOCKED_USER);
+    let saved = 0;
+    fixture.componentInstance.saved.subscribe(() => saved++);
+    const toast = TestBed.inject(ToastService);
+    const error = vi.spyOn(toast, 'error');
+    submit();
+
+    mock
+      .expectOne('/api/users/5')
+      .flush(
+        { status: 409, code: 'CONFLICT', detail: 'Người dùng đã được người khác cập nhật.' },
+        { status: 409, statusText: 'Conflict' },
+      );
+
+    expect(error).toHaveBeenCalledWith('Người dùng đã được người khác cập nhật.');
+    expect(saved).toBe(1);
   });
 
   it('khi sửa không có ô mật khẩu, tên đăng nhập và email bị khoá', async () => {

@@ -1314,6 +1314,15 @@ export interface paths {
                         "application/problem+json": components["schemas"]["ProblemDetails"];
                     };
                 };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
                 /** @description Internal Server Error */
                 500: {
                     headers: {
@@ -1523,6 +1532,8 @@ export interface components {
             updatedAt?: string | null;
             /** Format: date-time */
             deletedAt?: string | null;
+            /** Format: byte */
+            rowVersion: string;
         };
         UserResponsePagedResult: {
             items: components["schemas"]["UserResponse"][];
@@ -1541,6 +1552,8 @@ export interface components {
             fullName?: string;
             role?: string;
             isActive?: boolean | null;
+            /** Format: byte */
+            rowVersion?: string;
         };
         ValidationProblemDetails: {
             type?: string | null;

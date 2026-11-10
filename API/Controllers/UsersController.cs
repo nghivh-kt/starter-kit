@@ -56,6 +56,7 @@ namespace API.Controllers
         [HttpPut("{id:int}")]
         [ProducesResponseType<UserResponse>(StatusCodes.Status200OK)]
         [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)]
+        [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict, MediaTypeNames.Application.ProblemJson)]
         public async Task<ActionResult<UserResponse>> Update(int id, [FromBody] UserUpdateRequest request, CancellationToken ct)
         {
             return Ok(await _userService.UpdateAsync(id, request, ct));

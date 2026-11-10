@@ -151,8 +151,10 @@ public sealed class AuthFlowTests(ApiFixture fixture)
         var login = await Api.LoginAsync(user.UserName, user.Password);
         var admin = await Api.LoginAsAdminAsync();
 
-        var locked = await Api.CreateApiClient(admin.AccessToken).PutAsJsonAsync($"/api/users/{user.Id}",
-            new UserUpdateRequest { FullName = "Bị khoá", Role = "User", IsActive = false });
+        var adminClient = Api.CreateApiClient(admin.AccessToken);
+        var current = await adminClient.GetFromJsonAsync<UserResponse>($"/api/users/{user.Id}");
+        var locked = await adminClient.PutAsJsonAsync($"/api/users/{user.Id}",
+            new UserUpdateRequest { FullName = "Bị khoá", Role = "User", IsActive = false, RowVersion = current!.RowVersion });
         Assert.Equal(HttpStatusCode.OK, locked.StatusCode);
 
         var userClient = Api.CreateApiClient(login.AccessToken);
