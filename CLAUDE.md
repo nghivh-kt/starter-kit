@@ -6,6 +6,8 @@ ASP.NET Core Web API starter kit (.NET 10, SQL Server) with a single project, `A
 
 ## Commands
 
+From the repo root, `scripts/setup-dev.ps1` prepares a dev machine in one step: it checks the .NET SDK (pinned by `global.json` to the latest 10.0 feature band) and Node (`Client/.nvmrc`), sets missing user-secrets, runs the migrations and installs npm packages; re-running keeps existing secrets. A new project starts from a copy of the kit plus `scripts/init-project.ps1 -Name MyApp`, which renames every StarterKit identifier (cookie, JWT issuer, IIS and database names, page title) and generates a new `UserSecretsId`, so projects on one machine never share secrets. It refuses to run twice.
+
 Run these from `API/`:
 
 ```bash
