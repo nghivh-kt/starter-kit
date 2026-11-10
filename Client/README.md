@@ -89,5 +89,5 @@ src/app/
 ├── core/       Dùng chung toàn app: auth, HTTP, guard, service nền tảng
 ├── layout/     Khung trang: header, sidebar
 ├── shared/     Thành phần giao diện dùng lại: nút, ô nhập, bảng, modal
-└── features/   Từng tính năng: auth, home, user, category
+└── features/   Từng tính năng: auth, home, users, categories, not-found
 ```

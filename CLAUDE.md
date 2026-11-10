@@ -2,7 +2,7 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-ASP.NET Core Web API starter kit (.NET 10, SQL Server) with a single project, `API/`. The README (in Vietnamese) is the authoritative reference for conventions, the error format, and the auth flow. This file summarizes what matters when changing code. User-facing text (validation messages, exception `detail`, code comments) is written in Vietnamese; keep it that way.
+Fullstack kit for internal admin apps: an ASP.NET Core Web API (.NET 10, SQL Server) in `API/`, an Angular 22 client in `Client/` (see `Client/README.md`), and IIS deployment scripts in `deploy/iis/`. In production the API serves the Angular build, so the app runs as one IIS site. The README (in Vietnamese) is the authoritative reference for setup, conventions, the error format, and the auth flow. This file summarizes what matters when changing code. User-facing text (validation messages, exception `detail`, code comments) is written in Vietnamese; keep it that way.
 
 ## Commands
 

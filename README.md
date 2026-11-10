@@ -1,58 +1,98 @@
-# StarterKit API
+# StarterKit
 
-Khung ASP.NET Core Web API (.NET 10) dùng làm điểm khởi đầu cho dự án mới. Có sẵn đăng nhập JWT + Refresh Token,
-quản lý User, AuditLog tự động, EF Core + Dapper dùng chung transaction, và một module CRUD mẫu (Category).
+Bộ khung fullstack cho ứng dụng quản trị nội bộ: **ASP.NET Core Web API** (.NET 10, SQL Server) và **Angular 22**,
+chạy chung một địa chỉ và triển khai trên **một site IIS**. Dùng làm điểm khởi đầu cho dự án mới.
 
-## Yêu cầu
-- .NET 10 SDK
-- SQL Server (Express trở lên)
+Có sẵn:
+- Đăng nhập JWT, refresh token trong cookie HttpOnly (rotate, phát hiện dùng lại), khoá tạm tài khoản khi nhập sai mật khẩu nhiều lần.
+- Quản lý người dùng và vai trò; module mẫu Danh mục: phân trang, tìm kiếm và sắp xếp trên URL, xuất Excel, chống ghi đè khi hai người cùng sửa.
+- AuditLog và xoá mềm tự động; EF Core và Dapper dùng chung transaction; mọi lỗi theo chuẩn Problem Details.
+- Kiểu TypeScript sinh từ OpenAPI của API; giao diện dùng design token và đạt kiểm tra accessibility.
+- Test: API (xUnit, SQL Server thật), Client (Vitest), trình duyệt (Playwright + axe).
 
-## Chạy lần đầu
+## Cần cài
 
-```bash
-cd API
-dotnet tool restore
+| Công cụ | Phiên bản |
+|---|---|
+| .NET SDK | 10 (`global.json` chọn bản 10 mới nhất có trên máy) |
+| Node | 22 (`Client/.nvmrc`) |
+| SQL Server | Express trở lên; thêm `sqlcmd` nếu triển khai lên IIS |
 
-# 1. Cấu hình bí mật (lưu ngoài source code, chỉ trên máy bạn)
-dotnet user-secrets set "ConnectionStrings:DefaultConnection" "server=localhost\SQLEXPRESS;database=StarterKitDB;User Id=sa;Password=<mật khẩu>;TrustServerCertificate=True;"
-dotnet user-secrets set "JwtSettings:SecretKey" "<chuỗi ngẫu nhiên tối thiểu 32 ký tự>"
-dotnet user-secrets set "Seed:AdminPassword" "<mật khẩu admin, tối thiểu 8 ký tự>"
+## Bắt đầu
 
-# 2. Tạo database (user-secrets chỉ được nạp ở môi trường Development)
-#    PowerShell: $env:ASPNETCORE_ENVIRONMENT="Development"
-ASPNETCORE_ENVIRONMENT=Development dotnet ef database update
-
-# 3. Chạy
-dotnet run --launch-profile http
-```
-
-Swagger: http://localhost:5157/swagger · Health check: http://localhost:5157/health/ready
-
-**Tài khoản quản trị:** không có mật khẩu mặc định. Khi bảng `Users` còn rỗng và migration đã chạy xong, lần khởi động tiếp theo
-tạo user `admin` với mật khẩu lấy từ `Seed:AdminPassword`. Nếu chưa cấu hình, app bỏ qua bước này, chỉ ghi 1 dòng vào log, và chưa có tài khoản nào đăng nhập được.
-Khi đã có user, đổi `Seed:AdminPassword` không còn tác dụng; đổi mật khẩu bằng `POST /api/auth/change-password`.
-
-Trên server, đặt cấu hình bằng biến môi trường thay cho user-secrets:
-`ConnectionStrings__DefaultConnection`, `JwtSettings__SecretKey`, `Seed__AdminPassword`, `Cors__AllowedOrigins__0`, ...
-Cấu hình sai hoặc thiếu (SecretKey < 32 byte, thời hạn token ngoài khoảng cho phép...) sẽ làm ứng dụng dừng ngay khi khởi động
-kèm thông báo rõ ràng (Options pattern + `ValidateOnStart`).
-
-## Chạy test
-
-Test nằm trong `API.Tests`, chạy API thật trên SQL Server thật, không dùng user-secrets. Có 2 cách chọn SQL Server:
+### Tạo dự án mới từ kit
 
 ```powershell
-# Cách 1: server có sẵn. Mỗi lần chạy tạo database tạm StarterKit_Test_* và xoá khi xong
+git clone <địa chỉ repo kit> QuanLyKho
+cd QuanLyKho
+Remove-Item .git -Recurse -Force; git init      # lịch sử riêng cho dự án mới
+.\scripts\init-project.ps1 -Name QuanLyKho -DisplayName 'Quản lý kho'
+.\scripts\setup-dev.ps1
+```
+
+`init-project.ps1` đổi mọi dạng tên StarterKit (cookie, JWT issuer, tên site IIS, database, tiêu đề trang...) và sinh `UserSecretsId` mới,
+để các dự án trên cùng một máy không dùng chung secret. Mỗi dự án chạy trên cùng một máy IIS cần cổng HTTPS riêng: thêm `-HttpsPort 8444`.
+
+### Cài trên máy mới (dự án đã có)
+
+```powershell
+.\scripts\setup-dev.ps1        # tham số: -SqlServer, -Database, -WithE2E (tải trình duyệt cho Playwright), -Force
+```
+
+Script kiểm tra .NET và Node, đặt user-secrets còn thiếu (connection string dùng Windows auth, khoá JWT và mật khẩu admin ngẫu nhiên),
+tạo database bằng migration và cài package npm. Chạy lại vẫn an toàn: secret đã có thì giữ nguyên.
+
+### Chạy
+
+```powershell
+cd API;    dotnet run --launch-profile http     # http://localhost:5157/swagger, /health/ready
+cd Client; npm start                            # http://localhost:4200
+```
+
+`ng serve` chuyển `/api` sang API theo `Client/proxy.conf.json`, nên trình duyệt thấy một địa chỉ duy nhất như khi chạy thật.
+
+**Tài khoản quản trị:** không có mật khẩu mặc định. Khi bảng `Users` còn rỗng và migration đã chạy xong, lần khởi động API tiếp theo
+tạo user `admin` với mật khẩu lấy từ `Seed:AdminPassword` (`setup-dev.ps1` in ra mật khẩu này). Khi đã có user, đổi `Seed:AdminPassword`
+không còn tác dụng; đổi mật khẩu trong app (menu tài khoản > Đổi mật khẩu).
+
+Trên server, cấu hình đặt bằng biến môi trường thay cho user-secrets (`ConnectionStrings__DefaultConnection`, `JwtSettings__SecretKey`, ...).
+Cấu hình sai hoặc thiếu (SecretKey < 32 byte, thời hạn token ngoài khoảng cho phép...) làm ứng dụng dừng ngay khi khởi động,
+kèm thông báo rõ ràng (Options pattern + `ValidateOnStart`).
+
+## Lệnh thường dùng
+
+| Lệnh | Chạy ở | Việc |
+|---|---|---|
+| `dotnet test` | gốc repo | Test API trên SQL Server thật (xem bên dưới) |
+| `npm test` | `Client/` | Unit test bằng Vitest |
+| `npm run lint` | `Client/` | ESLint, gồm quy tắc accessibility của template |
+| `npm run e2e` | `Client/` | Playwright với API và SQL Server thật (xem `Client/README.md`) |
+| `npm run api:gen` | `Client/` | Sinh lại `API/openapi.json` và kiểu TypeScript sau khi đổi controller hoặc DTO |
+| `.\deploy\iis\publish.ps1`, `.\deploy\iis\deploy.ps1` | gốc repo | Tạo gói rồi triển khai lên IIS (xem `deploy/iis/README.md`) |
+
+Test API chạy API thật trên SQL Server thật, không dùng user-secrets:
+
+```powershell
+# Server có sẵn: mỗi lần chạy tạo database tạm StarterKit_Test_* và xoá khi xong. Tài khoản cần quyền tạo database
 $env:TEST_SQL_CONNECTION='Server=localhost\SQLEXPRESS;Integrated Security=True;TrustServerCertificate=True;'
 dotnet test
 
-# Cách 2: không đặt biến trên, Testcontainers tự chạy SQL Server (cần Docker ở chế độ Linux containers)
+# Không đặt biến trên: Testcontainers tự chạy SQL Server (cần Docker ở chế độ Linux containers)
 dotnet test
 ```
 
-Tắt app đang chạy trước khi test, nếu không `API.exe` bị khoá và build sẽ lỗi. Tài khoản đăng nhập SQL Server cần có quyền tạo database.
+Tắt API đang chạy trước khi test, nếu không `API.exe` bị khoá và build sẽ lỗi.
 
 ## Cấu trúc
+
+```
+API/                API ASP.NET Core (chi tiết bên dưới)
+API.Tests/          Test API: xUnit + WebApplicationFactory + SQL Server thật
+Client/             Angular (xem Client/README.md)
+deploy/iis/         Script và hướng dẫn triển khai IIS (xem deploy/iis/README.md)
+scripts/            init-project.ps1 (tạo dự án mới), setup-dev.ps1 (cài máy dev)
+global.json         Chọn .NET SDK 10
+```
 
 ```
 API/
@@ -60,18 +100,20 @@ API/
 ├── Services/               Nghiệp vụ
 │   ├── Interfaces/
 │   ├── Implementations/
-│   └── Validators/         FluentValidation (tự chạy qua FluentValidationFilter)
+│   ├── Validators/         FluentValidation (tự chạy qua FluentValidationFilter)
+│   └── Background/         Việc chạy nền theo lịch (dọn refresh token hết hạn)
 ├── Data/                   Truy cập dữ liệu
-│   ├── Configurations/     Cấu hình entity EF (index, độ dài cột, seed)
-│   ├── Extensions/         QueryableExtensions (search, filter, sort, paging)
+│   ├── Configurations/     Cấu hình entity EF (index, độ dài cột)
+│   ├── Extensions/         QueryableExtensions (lọc, tìm kiếm, sắp xếp, phân trang)
 │   ├── Interfaces/ · Repositories/   GenericRepository, UnitOfWork, DapperRepository
 │   └── Migrations/
 ├── Models/                 Entities, DTOs (không phụ thuộc tầng nào)
-├── Common/                 Dùng chung: Security (JWT, UserContext, Roles, Rate limiting),
-│                           Exceptions (GlobalExceptionHandler), Filters, Mappings (Mapster), Helpers
-├── Startup/                Cấu hình khởi động, mỗi file 1 mảng (Database, ApplicationServices, Api, Swagger,
-│                           Logging, HealthCheck, AdminSeed, Pipeline = thứ tự middleware)
-└── Program.cs              Chỉ gọi các extension trong Startup/ — đọc 1 màn hình là thấy toàn bộ cấu hình
+├── Common/                 Dùng chung: Security (JWT, UserContext, Roles, rate limit, khoá tạm tài khoản),
+│                           Exceptions (GlobalExceptionHandler), Filters, Mappings (Mapster), Helpers (Excel, phân trang)
+├── Startup/                Cấu hình khởi động, mỗi file 1 mảng (Database, ApplicationServices, Api, ClientApp, Swagger,
+│                           Logging, HealthCheck, AdminSeed, BackgroundJobs, Pipeline = thứ tự middleware)
+├── web.config              Cấu hình IIS (bỏ header Server, X-Powered-By)
+└── Program.cs              Chỉ gọi các extension trong Startup/: đọc 1 màn hình là thấy toàn bộ cấu hình
 ```
 
 Hướng phụ thuộc: `Controllers → Services → Data → Models`, và mọi tầng có thể dùng `Common`.
@@ -79,37 +121,29 @@ Hướng phụ thuộc: `Controllers → Services → Data → Models`, và mọ
 
 ## Thêm một module mới
 
-Copy theo mẫu Category:
+Copy theo mẫu Danh mục (Category), từ API sang Client:
 
-| File mẫu | Việc cần làm |
-|---|---|
-| `Models/Entities/Category.cs` | Entity, kế thừa `AuditableEntity` để có soft delete + AuditLog |
-| `Data/Configurations/CategoryConfiguration.cs` | Index, độ dài cột, seed |
-| `Data/EFDbContext.cs` | Thêm `DbSet<>` |
-| `Models/DTOs/CategoryDto.cs` | Response, CreateRequest, UpdateRequest, QueryRequest (kế thừa `PagedListQueryBase`) |
-| `Services/Validators/CategoryValidators.cs` | Quy tắc validate |
-| `Services/Interfaces/ICategoryService.cs`, `Services/Implementations/CategoryService.cs` | Nghiệp vụ |
-| `Controllers/CategoriesController.cs` | Endpoint |
-| `Startup/ApplicationServicesConfiguration.cs` | `AddScoped<IXxxService, XxxService>()` |
+| Bước | File mẫu | Việc cần làm |
+|---|---|---|
+| 1 | `API/Models/Entities/Category.cs` | Entity kế thừa `AuditableEntity`: có xoá mềm, AuditLog, `RowVersion` |
+| 2 | `API/Data/Configurations/CategoryConfiguration.cs` | Index, độ dài cột |
+| 3 | `API/Data/EFDbContext.cs` | Thêm `DbSet<>` |
+| 4 | `API/Models/DTOs/CategoryDto.cs` | `XxxResponse`, `XxxCreateRequest`, `XxxUpdateRequest`, `XxxQueryRequest` (kế thừa `PagedListQueryBase`) |
+| 5 | `API/Services/Validators/CategoryValidators.cs` | Quy tắc validate |
+| 6 | `API/Services/Interfaces/ICategoryService.cs`, `API/Services/Implementations/CategoryService.cs` | Nghiệp vụ; `SortColumns` là danh sách cột được phép sắp xếp |
+| 7 | `API/Controllers/CategoriesController.cs` | Endpoint. Route viết thường, khai báo mọi response bằng `[ProducesResponseType]` (nguồn sinh kiểu TypeScript) |
+| 8 | `API/Startup/ApplicationServicesConfiguration.cs` | `AddScoped<IXxxService, XxxService>()` |
+| 9 | Migration | Lệnh bên dưới |
+| 10 | `Client/`: `npm run api:gen` | Sinh kiểu TypeScript mới |
+| 11 | `Client/src/app/core/api/index.ts` | Tên ngắn cho kiểu mới (`XxxResponse`, `XxxPage`...) |
+| 12 | `Client/src/app/features/categories/` | Copy cả thư mục rồi đổi tên: service gọi API, `-list` (bảng, cột, quyền; trang, tìm kiếm, sắp xếp nằm trên URL), `-form` (field và validator khớp với API), `*.routes.ts` (thêm `roleGuard` nếu giới hạn vai trò) |
+| 13 | `Client/src/app/app.routes.ts`, `Client/src/app/core/navigation/navigation.ts` | Khai báo route; thêm một dòng menu, menu bên trái và trang chủ tự cập nhật |
 
-Sau đó tạo migration:
 ```bash
+# Trong API/. PowerShell: $env:ASPNETCORE_ENVIRONMENT="Development"
 ASPNETCORE_ENVIRONMENT=Development dotnet ef migrations add AddXxx -o Data/Migrations
 ASPNETCORE_ENVIRONMENT=Development dotnet ef database update
 ```
-
-Route viết thường (`[Route("api/xxx")]`), và khai báo mọi response bằng `[ProducesResponseType]`: đây là nguồn sinh kiểu TypeScript cho Client.
-
-Phần Client: chạy `npm run api:gen` trong `Client/` để có kiểu mới, rồi copy thư mục `Client/src/app/features/categories` và đổi tên:
-
-| File mẫu | Việc cần làm |
-|---|---|
-| `src/app/core/api/index.ts` | Thêm tên ngắn cho kiểu mới (`XxxResponse`, `XxxPage`...) |
-| `features/categories/category.service.ts` | Gọi API |
-| `features/categories/category-list/` | Bảng, cột, quyền. Trang, tìm kiếm, sắp xếp nằm trên URL |
-| `features/categories/category-form/` | Field và validator, khớp với validator của API |
-| `features/categories/categories.routes.ts` | Khai báo route; thêm `roleGuard` nếu giới hạn vai trò |
-| `src/app/app.routes.ts`, `layout/sidebar` | Thêm route và mục menu |
 
 **Chống ghi đè lẫn nhau:** entity kế thừa `AuditableEntity` có `RowVersion`. Trả nó trong `XxxResponse`, nhận lại trong `XxxUpdateRequest`, rồi so sánh trong service như `CategoryService.UpdateAsync`. Hai người cùng sửa thì người lưu sau nhận 409; form Client báo lỗi và tải lại danh sách.
 
