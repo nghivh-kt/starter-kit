@@ -28,7 +28,7 @@ namespace API.Services.Background
             var cutoff = timeProvider.GetUtcNow().UtcDateTime.AddDays(-options.Value.RefreshTokenRetentionDays);
 
             // ExecuteDelete: một lệnh DELETE, không nạp từng dòng lên bộ nhớ
-            return unitOfWork.Repository<RefreshToken>().Query(asNoTracking: false)
+            return unitOfWork.Repository<RefreshToken>().QueryForEdit()
                 .Where(token => token.ExpiresAt < cutoff)
                 .ExecuteDeleteAsync(ct);
         }

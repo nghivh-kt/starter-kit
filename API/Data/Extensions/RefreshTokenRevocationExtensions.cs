@@ -14,8 +14,8 @@ namespace API.Data.Extensions
         public static async Task RevokeActiveRefreshTokensAsync(
             this IUnitOfWork unitOfWork, int userId, string? ipAddress, string reason, DateTime now, CancellationToken ct)
         {
-            // Tracking: EF tự sinh UPDATE cho các cột thay đổi, không cần gọi Repository.Update()
-            var activeRefreshTokens = await unitOfWork.Repository<RefreshToken>().Query(asNoTracking: false)
+            // QueryForEdit (có tracking): EF tự sinh UPDATE cho các cột thay đổi khi SaveChangesAsync
+            var activeRefreshTokens = await unitOfWork.Repository<RefreshToken>().QueryForEdit()
                 .Where(rt => rt.UserId == userId && rt.RevokedAt == null && rt.ExpiresAt > now)
                 .ToListAsync(ct);
 

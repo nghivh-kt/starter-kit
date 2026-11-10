@@ -42,6 +42,10 @@ public sealed class AuditLogTests(ApiFixture fixture)
         });
     }
 
+    /// <summary>
+    /// Repository cố ý không có Update(entity), nhưng DbContext.Update() của EF vẫn gọi được (ví dụ job import dựng entity đầy đủ):
+    /// AuditLog vẫn phải ghi lại, dù EF không biết giá trị cũ.
+    /// </summary>
     [Fact]
     public async Task BlindUpdate_StillLogsNewValues_WithRowVersionColumn()
     {
@@ -51,8 +55,8 @@ public sealed class AuditLogTests(ApiFixture fixture)
 
         await using (var scope = Api.Services.CreateAsyncScope())
         {
-            var unitOfWork = scope.ServiceProvider.GetRequiredService<IUnitOfWork>();
-            unitOfWork.Repository<Category>().Update(new Category
+            var db = scope.ServiceProvider.GetRequiredService<EFDbContext>();
+            db.Categories.Update(new Category
             {
                 Id = category.Id,
                 Name = newName,
@@ -60,7 +64,7 @@ public sealed class AuditLogTests(ApiFixture fixture)
                 CreatedAt = category.CreatedAt,
                 RowVersion = category.RowVersion
             });
-            await unitOfWork.SaveChangesAsync();
+            await db.SaveChangesAsync();
         }
 
         var log = (await ReadLogsAsync("Categories", category.Id))[^1];

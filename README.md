@@ -169,7 +169,10 @@ ASPNETCORE_ENVIRONMENT=Development dotnet ef database update
   - `Repository.Delete(entity)` thành **xoá mềm** (`IsActive = false`, `DeletedAt = now`); bản ghi đã xoá tự bị ẩn khỏi
     mọi truy vấn (global query filter). Cần xem lại: `.IgnoreQueryFilters()`. Cần xoá thật: `ExecuteDeleteAsync`.
   - Mọi thay đổi được ghi vào bảng `AuditLogs` (ai, lúc nào, IP, giá trị cũ/mới; cột nhạy cảm như `PasswordHash` chỉ ghi tên cột).
-- **Cập nhật**: lấy entity bằng `Query(asNoTracking: false)`, sửa property rồi `SaveChangesAsync` — không cần gọi `Update()`.
+- **Đọc và ghi qua repository**: đọc (hiển thị, xuất file) bằng `Query()`, không tracking nên nhanh hơn. Mọi thao tác ghi dùng `QueryForEdit()`:
+  lấy entity, sửa property rồi `SaveChangesAsync` (EF chỉ UPDATE cột thật sự đổi), `Delete`, hoặc `ExecuteUpdateAsync`/`ExecuteDeleteAsync`.
+  Sửa entity lấy từ `Query()` thì `SaveChangesAsync` không lưu gì và không báo lỗi. Repository cố ý không có `Update(entity)`:
+  lệnh này UPDATE mọi cột (cột nào object thiếu thì bị ghi đè thành rỗng) và AuditLog mất giá trị cũ.
 - **Thời gian**: luôn lưu UTC. Lấy giờ hiện tại qua `TimeProvider` (inject), viết `_timeProvider.GetUtcNow().UtcDateTime`,
   **không** dùng `DateTime.UtcNow`/`DateTime.Now`: khi viết test có thể thay bằng `FakeTimeProvider` để tua thời gian.
   Giá trị đọc từ DB được đánh dấu UTC nên JSON luôn có hậu tố `Z`; client tự đổi sang giờ địa phương khi hiển thị.

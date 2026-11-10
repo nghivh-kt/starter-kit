@@ -2,56 +2,39 @@
 
 namespace API.Data.Interfaces
 {
+    /// <summary>
+    /// Truy cập một bảng như một bộ sưu tập. Lấy qua IUnitOfWork.Repository&lt;T&gt;(): mọi repository của một request
+    /// dùng chung một EFDbContext, nên thay đổi trên nhiều bảng được lưu cùng lúc bằng IUnitOfWork.SaveChangesAsync.
+    /// </summary>
     public interface IGenericRepository<T> where T : class
     {
         /// <summary>
-        /// Tạo câu lệnh truy vấn (LINQ). Mặc định bật AsNoTracking để tối ưu hiệu năng đọc.
+        /// Truy vấn để đọc (hiển thị, xuất file, kiểm tra tồn tại). Không tracking: nhanh hơn và tốn ít bộ nhớ hơn,
+        /// nhưng sửa entity lấy từ đây rồi SaveChangesAsync sẽ không lưu gì. Muốn sửa hoặc xoá thì dùng QueryForEdit().
         /// </summary>
-        IQueryable<T> Query(bool asNoTracking = true);
+        IQueryable<T> Query();
 
         /// <summary>
-        /// Tìm kiếm một bản ghi dựa trên khóa chính (Primary Key).
+        /// Truy vấn để ghi: sửa property rồi SaveChangesAsync (EF chỉ UPDATE cột thật sự thay đổi), Delete, hoặc
+        /// ExecuteUpdateAsync/ExecuteDeleteAsync. Có tracking để EF ghi nhớ giá trị gốc. Không khoá dòng trong database.
         /// </summary>
-        Task<T?> GetByIdAsync(object key, CancellationToken cancellationToken = default);
+        IQueryable<T> QueryForEdit();
 
-        /// <summary>
-        /// Tìm kiếm một bản ghi dựa trên danh sách các khóa chính (Primary Keys).
-        /// </summary>
-        Task<T?> GetByIdAsync(object[] keys, CancellationToken cancellationToken = default);
-
-        /// <summary>
-        /// Thêm mới một bản ghi vào Database.
-        /// </summary>
+        /// <summary>Thêm mới một bản ghi (INSERT khi SaveChangesAsync).</summary>
         Task AddAsync(T entity, CancellationToken cancellationToken = default);
 
-        /// <summary>
-        /// Thêm mới danh sách nhiều bản ghi cùng lúc.
-        /// </summary>
+        /// <summary>Thêm mới nhiều bản ghi cùng lúc.</summary>
         Task AddRangeAsync(IEnumerable<T> entities, CancellationToken cancellationToken = default);
 
         /// <summary>
-        /// Đánh dấu một bản ghi là đã thay đổi để cập nhật (Update).
-        /// </summary>
-        void Update(T entity);
-
-        /// <summary>
-        /// Đánh dấu danh sách nhiều bản ghi là đã thay đổi để cập nhật hàng loạt.
-        /// </summary>
-        void UpdateRange(IEnumerable<T> entities);
-
-        /// <summary>
-        /// Đánh dấu một bản ghi để xóa (Delete).
+        /// Xoá bản ghi lấy từ QueryForEdit(). Entity kế thừa AuditableEntity được EFDbContext đổi thành xoá mềm.
         /// </summary>
         void Delete(T entity);
 
-        /// <summary>
-        /// Đánh dấu danh sách nhiều bản ghi để xóa hàng loạt.
-        /// </summary>
+        /// <summary>Xoá nhiều bản ghi lấy từ QueryForEdit().</summary>
         void DeleteRange(IEnumerable<T> entities);
 
-        /// <summary>
-        /// Kiểm tra xem có bản ghi nào khớp với điều kiện (predicate) hay không.
-        /// </summary>
+        /// <summary>Có bản ghi nào khớp điều kiện hay không (SELECT EXISTS, không nạp dữ liệu).</summary>
         Task<bool> ExistsAsync(Expression<Func<T, bool>> predicate, CancellationToken cancellationToken = default);
     }
 }

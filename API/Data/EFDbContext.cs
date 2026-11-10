@@ -141,7 +141,7 @@ namespace API.Data
                                 // So sánh OriginalValues (giá trị lúc EF nạp entity từ DB) với CurrentValues:
                                 // không tốn thêm truy vấn DB cho mỗi entity như GetDatabaseValuesAsync.
                                 //
-                                // Ngoại lệ: entity gắn vào bằng Repository.Update() (không nạp từ DB) -> EF không biết giá trị cũ,
+                                // Ngoại lệ: entity gắn vào bằng DbContext.Update() (không nạp từ DB; repository cố ý không có hàm này) -> EF không biết giá trị cũ,
                                 // mọi cột đều bị đánh dấu sửa và Original == Current. Khi đó ghi toàn bộ giá trị mới, OldValues = null.
                                 // RowVersion do SQL Server sinh, không bao giờ được đánh dấu sửa nên không tính vào đây.
                                 var isBlindUpdate = entry.Properties

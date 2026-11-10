@@ -1,7 +1,8 @@
 ﻿namespace API.Data.Interfaces
 {
     /// <summary>
-    /// UnitOfWork pattern – quản lý EF Core và Dapper trong cùng 1 scope.
+    /// Một đơn vị công việc cho mỗi request: mọi repository và Dapper dùng chung một EFDbContext (đăng ký Scoped).
+    /// EF ghi nhớ mọi thay đổi trên các bảng, SaveChangesAsync ghi tất cả trong một transaction.
     /// Không implement IDisposable: EFDbContext do DI container tạo và giải phóng cuối request.
     /// </summary>
     public interface IUnitOfWork

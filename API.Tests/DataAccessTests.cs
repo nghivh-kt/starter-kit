@@ -16,19 +16,36 @@ public sealed class DataAccessTests(ApiFixture fixture)
     private ApiFactory Api => fixture.Factory;
 
     [Fact]
-    public async Task GetByIdAsync_FindsEntity_WithSingleKeyAndKeyArray()
+    public async Task Query_DoesNotSaveEdits_QueryForEdit_Does()
     {
         var admin = await Api.LoginAsAdminAsync();
         var category = await Api.CreateApiClient(admin.AccessToken).CreateCategoryAsync();
+        var readOnlyName = ApiTestHelpers.UniqueName("ro");
+        var editedName = ApiTestHelpers.UniqueName("edit");
 
-        await using var scope = Api.Services.CreateAsyncScope();
-        var repository = scope.ServiceProvider.GetRequiredService<IUnitOfWork>().Repository<Category>();
+        // Query(): để đọc, EF không theo dõi entity nên sửa rồi lưu cũng không có gì được ghi
+        await using (var scope = Api.Services.CreateAsyncScope())
+        {
+            var unitOfWork = scope.ServiceProvider.GetRequiredService<IUnitOfWork>();
+            var readOnly = await unitOfWork.Repository<Category>().Query().SingleAsync(c => c.Id == category.Id);
+            readOnly.Name = readOnlyName;
+            Assert.Equal(0, await unitOfWork.SaveChangesAsync());
+        }
 
-        var bySingleKey = await repository.GetByIdAsync((object)category.Id);
-        var byKeyArray = await repository.GetByIdAsync(new object[] { category.Id });
+        // QueryForEdit(): EF ghi nhớ giá trị gốc, SaveChangesAsync UPDATE đúng cột đã đổi
+        await using (var scope = Api.Services.CreateAsyncScope())
+        {
+            var unitOfWork = scope.ServiceProvider.GetRequiredService<IUnitOfWork>();
+            var editable = await unitOfWork.Repository<Category>().QueryForEdit().SingleAsync(c => c.Id == category.Id);
+            editable.Name = editedName;
+            Assert.Equal(1, await unitOfWork.SaveChangesAsync());
+        }
 
-        Assert.Equal(category.Name, bySingleKey?.Name);
-        Assert.Equal(category.Name, byKeyArray?.Name);
+        await using (var scope = Api.Services.CreateAsyncScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<EFDbContext>();
+            Assert.Equal(editedName, (await db.Categories.SingleAsync(c => c.Id == category.Id)).Name);
+        }
     }
 
     [Fact]

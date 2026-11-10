@@ -68,7 +68,7 @@ namespace API.Services.Implementations
         // Danh sách trên màn hình và file Excel dùng chung bộ lọc, nên luôn cho cùng một kết quả
         private IQueryable<User> BuildListQuery(UserQueryRequest query)
         {
-            return _unitOfWork.Repository<User>().Query(asNoTracking: true)
+            return _unitOfWork.Repository<User>().Query()
                 .ApplySearch(query.Search, x => x.UserName, x => x.FullName, x => x.Email)
                 .WhereIf(query.IsActive.HasValue, x => x.IsActive == query.IsActive)
                 .WhereIf(!string.IsNullOrEmpty(query.Role), x => x.Role == query.Role)
@@ -173,7 +173,7 @@ namespace API.Services.Implementations
         private async Task<User> FindTrackedAsync(int id, CancellationToken ct)
         {
             return await _unitOfWork.Repository<User>()
-                .Query(asNoTracking: false)
+                .QueryForEdit()
                 .FirstOrDefaultAsync(u => u.Id == id, ct)
                 ?? throw new NotFoundException($"Không tìm thấy User có Id = {id}.");
         }

@@ -65,7 +65,7 @@ namespace API.Services.Implementations
         private IQueryable<Category> BuildListQuery(CategoryQueryRequest query)
         {
             // 1. Bản ghi đã xoá mềm tự động bị loại nhờ global query filter (EFDbContext)
-            var source = _unitOfWork.Repository<Category>().Query(asNoTracking: true);
+            var source = _unitOfWork.Repository<Category>().Query();
 
             // 2. Tìm kiếm + lọc (bỏ qua khi client không gửi tham số)
             source = source
@@ -79,7 +79,7 @@ namespace API.Services.Implementations
         public async Task<CategoryResponse> GetByIdAsync(int id, CancellationToken ct)
         {
             var category = await _unitOfWork.Repository<Category>()
-                .Query(asNoTracking: true)
+                .Query()
                 .FirstOrDefaultAsync(c => c.Id == id, ct)
                 ?? throw new NotFoundException($"Không tìm thấy danh mục có Id = {id}.");
 
@@ -100,7 +100,7 @@ namespace API.Services.Implementations
 
         public async Task<CategoryResponse> UpdateAsync(int id, CategoryUpdateRequest request, CancellationToken ct)
         {
-            // Lấy entity có tracking: EF chỉ UPDATE những cột thực sự thay đổi, không cần gọi Repository.Update().
+            // QueryForEdit (có tracking): EF chỉ UPDATE những cột thực sự thay đổi khi SaveChangesAsync.
             // UpdatedAt do EFDbContext tự gán
             var category = await FindTrackedAsync(id, ct);
 
@@ -134,7 +134,7 @@ namespace API.Services.Implementations
         private async Task<Category> FindTrackedAsync(int id, CancellationToken ct)
         {
             return await _unitOfWork.Repository<Category>()
-                .Query(asNoTracking: false)
+                .QueryForEdit()
                 .FirstOrDefaultAsync(c => c.Id == id, ct)
                 ?? throw new NotFoundException($"Không tìm thấy danh mục có Id = {id}.");
         }

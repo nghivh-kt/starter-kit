@@ -139,7 +139,7 @@ namespace API.Services.Implementations
                 // Thu hồi token cũ bằng UPDATE có điều kiện "RevokedAt IS NULL".
                 // Hai request refresh song song: SQL Server khoá dòng, request đến sau thấy 0 dòng bị ảnh hưởng
                 // => chỉ đúng 1 request rotate thành công, không thể sinh ra 2 refresh token hợp lệ.
-                var affected = await _unitOfWork.Repository<RefreshToken>().Query(asNoTracking: false)
+                var affected = await _unitOfWork.Repository<RefreshToken>().QueryForEdit()
                     .Where(rt => rt.Id == refreshTokenExisting.Id && rt.RevokedAt == null)
                     .ExecuteUpdateAsync(s => s
                         .SetProperty(rt => rt.RevokedAt, now)
@@ -156,7 +156,7 @@ namespace API.Services.Implementations
                 await _unitOfWork.Repository<RefreshToken>().AddAsync(newRefreshTokenEntity, token);
                 await _unitOfWork.SaveChangesAsync(token);
 
-                await _unitOfWork.Repository<RefreshToken>().Query(asNoTracking: false)
+                await _unitOfWork.Repository<RefreshToken>().QueryForEdit()
                     .Where(rt => rt.Id == refreshTokenExisting.Id)
                     .ExecuteUpdateAsync(s => s.SetProperty(rt => rt.ReplacedByTokenId, newRefreshTokenEntity.Id), token);
 
@@ -172,7 +172,7 @@ namespace API.Services.Implementations
             if (string.IsNullOrWhiteSpace(refreshToken)) return;
 
             var hashedToken = JwtTokenHelper.HashToken(refreshToken);
-            var refreshTokenExisting = await _unitOfWork.Repository<RefreshToken>().Query(asNoTracking: false)
+            var refreshTokenExisting = await _unitOfWork.Repository<RefreshToken>().QueryForEdit()
                 .FirstOrDefaultAsync(rt => rt.TokenHash == hashedToken, ct);
 
             // Token không tồn tại hoặc đã bị revoke → không làm gì cả (idempotent)
@@ -202,7 +202,7 @@ namespace API.Services.Implementations
         public async Task ChangePasswordAsync(int userId, ChangePasswordRequest request, string ip, CancellationToken ct)
         {
             // Access token vẫn còn hạn sau khi tài khoản bị khoá, nên phải kiểm tra lại IsActive
-            var user = await _unitOfWork.Repository<User>().Query(asNoTracking: false)
+            var user = await _unitOfWork.Repository<User>().QueryForEdit()
                 .FirstOrDefaultAsync(u => u.Id == userId && u.IsActive, ct)
                 ?? throw new UnauthorizedException("Tài khoản không tồn tại hoặc đã bị khoá");
 
@@ -267,7 +267,7 @@ namespace API.Services.Implementations
         {
             var maxAttempts = _lockoutSettings.MaxFailedAttempts;
             DateTime? lockoutEnd = now.AddMinutes(_lockoutSettings.LockoutMinutes);
-            var row = _unitOfWork.Repository<User>().Query(asNoTracking: false).Where(u => u.Id == user.Id);
+            var row = _unitOfWork.Repository<User>().QueryForEdit().Where(u => u.Id == user.Id);
 
             await row.ExecuteUpdateAsync(s => s
                 .SetProperty(u => u.LockoutEnd, u => u.FailedLoginCount + 1 >= maxAttempts ? lockoutEnd : u.LockoutEnd)
@@ -284,7 +284,7 @@ namespace API.Services.Implementations
         {
             if (user.FailedLoginCount == 0 && user.LockoutEnd is null) return;
 
-            await _unitOfWork.Repository<User>().Query(asNoTracking: false)
+            await _unitOfWork.Repository<User>().QueryForEdit()
                 .Where(u => u.Id == user.Id)
                 .ExecuteUpdateAsync(s => s
                     .SetProperty(u => u.FailedLoginCount, 0)

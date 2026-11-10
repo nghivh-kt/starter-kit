@@ -1,17 +1,17 @@
 ﻿using API.Data.Interfaces;
 using Microsoft.EntityFrameworkCore;
-using System.Collections.Concurrent;
 
 namespace API.Data.Repositories
 {
     /// <summary>
-    /// UnitOfWork pattern – quản lý EF Core và Dapper trong cùng 1 scope.
+    /// Một đơn vị công việc cho mỗi request, xem IUnitOfWork.
     /// </summary>
     public class UnitOfWork : IUnitOfWork
     {
         private readonly EFDbContext _context;
         private readonly IDapperRepository _dapperRepository;
-        private readonly ConcurrentDictionary<Type, object> _repositories = new();
+        // Không cần ConcurrentDictionary: UnitOfWork là Scoped và EFDbContext không dùng được từ nhiều luồng cùng lúc
+        private readonly Dictionary<Type, object> _repositories = [];
 
         public UnitOfWork(EFDbContext context, IDapperRepository dapperRepository)
         {
@@ -20,11 +20,16 @@ namespace API.Data.Repositories
         }
 
         /// <summary>
-        /// Lấy GenericRepository cho entity EF.
+        /// Lấy GenericRepository cho entity EF. Mọi repository dùng chung _context, nên cùng nằm trong một đơn vị công việc.
         /// </summary>
         public IGenericRepository<T> Repository<T>() where T : class
         {
-            return (IGenericRepository<T>)_repositories.GetOrAdd(typeof(T), _ => new GenericRepository<T>(_context));
+            if (!_repositories.TryGetValue(typeof(T), out var repository))
+            {
+                repository = new GenericRepository<T>(_context);
+                _repositories[typeof(T)] = repository;
+            }
+            return (IGenericRepository<T>)repository;
         }
 
         /// <summary>
@@ -35,86 +40,59 @@ namespace API.Data.Repositories
         /// <summary>
         /// Lưu thay đổi vào database của EF.
         /// </summary>
-        public async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+        public Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
         {
-            return await _context.SaveChangesAsync(cancellationToken);
+            return _context.SaveChangesAsync(cancellationToken);
         }
 
         /// <summary>
-        /// Chạy 1 hành động trong transaction của EF (non-return).
+        /// Chạy 1 hành động trong transaction của EF (không trả giá trị). Dùng chung logic với bản có giá trị trả về.
         /// </summary>
-        public async Task ExecuteInTransactionAsync(Func<CancellationToken, Task> action, CancellationToken cancellationToken = default)
+        public Task ExecuteInTransactionAsync(Func<CancellationToken, Task> action, CancellationToken cancellationToken = default)
         {
-            // BƯỚC 1: Khởi tạo chiến lược thực thi (Execution Strategy).
-            // Hiện CHƯA bật retry (xem DatabaseConfiguration) nên đoạn code bên trong chỉ chạy 1 lần.
-            // Đi qua strategy để khi bật EnableRetryOnFailure, cả transaction được chạy lại từ đầu thay vì báo lỗi.
-            var strategy = _context.Database.CreateExecutionStrategy();
-
-            // BƯỚC 2: Thực thi logic trong "vòng bảo vệ" của Strategy.
-            await strategy.ExecuteAsync(async () =>
+            return ExecuteInTransactionAsync(async token =>
             {
-                // BƯỚC 3: Kiểm tra xem đã có một Transaction nào đang mở sẵn chưa.
-                // Nếu hàm này được gọi lồng bên trong một hàm khác cũng có Transaction, ta sẽ dùng chung luôn.
-                if (_context.Database.CurrentTransaction is not null)
-                {
-                    await action(cancellationToken);
-                    return; // Thoát ra vì Transaction cha sẽ lo việc Commit/Rollback.
-                }
-
-                // BƯỚC 4: Bắt đầu một Transaction mới thực thụ dưới Database.
-                // "await using" đảm bảo Transaction sẽ luôn được giải phóng (Dispose) sạch sẽ khi xong việc.
-                await using var tx = await _context.Database.BeginTransactionAsync(cancellationToken);
-
-                try
-                {
-                    // BƯỚC 5: Thực thi các lệnh nghiệp vụ (Lệnh Dapper hoặc EF Core) truyền vào từ Service.
-                    await action(cancellationToken);
-
-                    // BƯỚC 6: Đẩy toàn bộ thay đổi của EF Core xuống Database.
-                    // Bước này phải chạy TRƯỚC khi Commit. Nếu Save lỗi, hệ thống sẽ nhảy ngay xuống khối catch.
-                    await _context.SaveChangesAsync(cancellationToken);
-
-                    // BƯỚC 7: Xác nhận lưu vĩnh viễn (Commit). 
-                    // Đến đây, dữ liệu mới chính thức được ghi vào ổ đĩa Database.
-                    await tx.CommitAsync(cancellationToken);
-                }
-                catch
-                {
-                    // BƯỚC 8: Nếu có bất kỳ lỗi nào xảy ra trong try, ngay lập tức hủy bỏ mọi thay đổi.
-                    // Database sẽ quay về trạng thái ban đầu như chưa có chuyện gì xảy ra.
-                    // Không truyền cancellationToken: request đã huỷ thì RollbackAsync sẽ ném lỗi khác, che mất lỗi gốc.
-                    await tx.RollbackAsync(CancellationToken.None);
-
-                    // BƯỚC 9: Ném lỗi ra ngoài để tầng Service hoặc Middleware xử lý/hiển thị thông báo.
-                    throw;
-                }
-            });
+                await action(token);
+                return true;
+            }, cancellationToken);
         }
 
         /// <summary>
-        /// Chạy 1 hành động trong transaction của EF (return value).
+        /// Chạy 1 hành động trong transaction của EF (có giá trị trả về).
         /// </summary>
         public async Task<TResult> ExecuteInTransactionAsync<TResult>(Func<CancellationToken, Task<TResult>> action, CancellationToken cancellationToken = default)
         {
+            // BƯỚC 1: Đi qua execution strategy. Hiện CHƯA bật retry (xem DatabaseConfiguration) nên đoạn code bên trong chỉ chạy 1 lần.
+            // Khi bật EnableRetryOnFailure, cả transaction được chạy lại từ đầu thay vì báo lỗi.
             var strategy = _context.Database.CreateExecutionStrategy();
 
             return await strategy.ExecuteAsync(async () =>
             {
+                // BƯỚC 2: Đã có transaction đang mở (hàm này được gọi lồng bên trong một transaction khác): dùng chung,
+                // transaction cha sẽ lo Commit/Rollback.
                 if (_context.Database.CurrentTransaction is not null)
                 {
                     return await action(cancellationToken);
                 }
 
+                // BƯỚC 3: Mở transaction mới. "await using" đảm bảo transaction luôn được giải phóng khi xong việc.
                 await using var tx = await _context.Database.BeginTransactionAsync(cancellationToken);
                 try
                 {
+                    // BƯỚC 4: Lệnh nghiệp vụ (EF hoặc Dapper). Dapper tự dùng chung transaction này qua DapperDbContext.
                     var result = await action(cancellationToken);
+
+                    // BƯỚC 5: Đẩy thay đổi của EF xuống database TRƯỚC khi Commit. Lưu lỗi thì nhảy xuống catch.
                     await _context.SaveChangesAsync(cancellationToken);
+
+                    // BƯỚC 6: Xác nhận lưu vĩnh viễn.
                     await tx.CommitAsync(cancellationToken);
                     return result;
                 }
                 catch
                 {
+                    // BƯỚC 7: Có lỗi thì huỷ mọi thay đổi, rồi ném lỗi ra để GlobalExceptionHandler trả về cho client.
+                    // Không truyền cancellationToken: request đã huỷ thì RollbackAsync sẽ ném lỗi khác, che mất lỗi gốc.
                     await tx.RollbackAsync(CancellationToken.None);
                     throw;
                 }
