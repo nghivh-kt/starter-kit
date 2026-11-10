@@ -14,5 +14,8 @@ namespace API.Services.Interfaces
 
         // Đặt lại mật khẩu (Admin), thu hồi toàn bộ refresh token của user đó
         Task ResetPasswordAsync(int id, UserResetPasswordRequest request, CancellationToken ct);
+
+        // Mở khoá tạm do nhập sai mật khẩu nhiều lần (không liên quan tới IsActive)
+        Task UnlockAsync(int id, CancellationToken ct);
     }
 }

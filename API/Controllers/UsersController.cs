@@ -70,5 +70,15 @@ namespace API.Controllers
             await _userService.ResetPasswordAsync(id, request, ct);
             return NoContent();
         }
+
+        /// <summary>Mở khoá tạm do nhập sai mật khẩu nhiều lần. Tài khoản không bị khoá thì không có gì thay đổi.</summary>
+        [HttpPut("{id:int}/unlock")]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound, MediaTypeNames.Application.ProblemJson)]
+        public async Task<IActionResult> Unlock(int id, CancellationToken ct)
+        {
+            await _userService.UnlockAsync(id, ct);
+            return NoContent();
+        }
     }
 }

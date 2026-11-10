@@ -14,6 +14,7 @@ namespace API.Common.Exceptions
         public const string NotFound = "NOT_FOUND";
         public const string Conflict = "CONFLICT";
         public const string TooManyRequests = "TOO_MANY_REQUESTS";
+        public const string AccountLocked = "ACCOUNT_LOCKED";
         public const string InternalError = "INTERNAL_ERROR";
 
         /// <summary>Mã lỗi mặc định theo status, dùng khi nơi tạo Problem Details chưa gán code</summary>

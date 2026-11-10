@@ -28,10 +28,11 @@ public sealed class SecurityConfigTests(ApiFixture fixture)
         });
         var client = api.CreateApiClient();
 
+        // Rate limit tính theo IP, không theo tài khoản. Dùng tên không tồn tại để không khoá tạm tài khoản admin dùng chung
         for (var i = 0; i < 10; i++)
-            Assert.Equal(HttpStatusCode.Unauthorized, (await client.PostLoginAsync("admin", "sai-mat-khau")).StatusCode);
+            Assert.Equal(HttpStatusCode.Unauthorized, (await client.PostLoginAsync("khong-ton-tai", "sai-mat-khau")).StatusCode);
 
-        var blocked = await client.PostLoginAsync("admin", "sai-mat-khau");
+        var blocked = await client.PostLoginAsync("khong-ton-tai", "sai-mat-khau");
 
         Assert.Equal(HttpStatusCode.TooManyRequests, blocked.StatusCode);
         Assert.True(blocked.Headers.Contains("Retry-After"));

@@ -30,16 +30,21 @@ namespace API.Services.Implementations
         private readonly JwtTokenHelper _jwtTokenHelper;
         private readonly JwtSettings _jwtSettings;
         private readonly RefreshTokenSettings _refreshTokenSettings;
+        private readonly LockoutSettings _lockoutSettings;
         private readonly TimeProvider _timeProvider;
+        private readonly ILogger<AuthService> _logger;
 
         public AuthService(IUnitOfWork unitOfWork, JwtTokenHelper jwtTokenHelper,
-            IOptions<JwtSettings> jwtSettings, IOptions<RefreshTokenSettings> refreshTokenSettings, TimeProvider timeProvider)
+            IOptions<JwtSettings> jwtSettings, IOptions<RefreshTokenSettings> refreshTokenSettings, IOptions<LockoutSettings> lockoutSettings,
+            TimeProvider timeProvider, ILogger<AuthService> logger)
         {
             _unitOfWork = unitOfWork;
             _jwtTokenHelper = jwtTokenHelper;
             _jwtSettings = jwtSettings.Value;
             _refreshTokenSettings = refreshTokenSettings.Value;
+            _lockoutSettings = lockoutSettings.Value;
             _timeProvider = timeProvider;
+            _logger = logger;
         }
 
         // --------------------------------------------------------------------
@@ -47,15 +52,26 @@ namespace API.Services.Implementations
         // --------------------------------------------------------------------
         public async Task<AuthResponse> LoginAsync(string username, string password, string ip, CancellationToken ct)
         {
+            var now = UtcNow();
+
             // 1. Tìm User trong Database theo Username
             var user = await _unitOfWork.Repository<User>().Query().FirstOrDefaultAsync(u => u.UserName == username, ct);
 
-            // 2. Kiểm tra mật khẩu bằng BCrypt. Luôn chạy Verify (kể cả khi không có user) để thời gian phản hồi như nhau
+            // 2. Đang khoá tạm: từ chối trước khi kiểm tra mật khẩu, nên thử tiếp trong lúc khoá không dò được mật khẩu đúng
+            EnsureNotLockedOut(user, now);
+
+            // 3. Kiểm tra mật khẩu bằng BCrypt. Luôn chạy Verify (kể cả khi không có user) để thời gian phản hồi như nhau
             var isPasswordValid = BCrypt.Net.BCrypt.Verify(password, user?.PasswordHash ?? DummyPasswordHash);
-            if (user is null || !isPasswordValid)
+            if (user is null)
             {
                 throw new UnauthorizedException(InvalidCredentialsMessage);
             }
+            if (!isPasswordValid)
+            {
+                await RegisterFailedPasswordAsync(user, now, ct);
+                throw new UnauthorizedException(InvalidCredentialsMessage);
+            }
+            await ResetFailedPasswordsAsync(user, ct);
 
             // Kiểm tra khoá SAU mật khẩu: người không biết mật khẩu không dò được tài khoản nào đang bị khoá.
             // Đăng nhập đúng nhưng bị khoá => 403 (đã xác thực, nhưng không được phép)
@@ -64,13 +80,12 @@ namespace API.Services.Implementations
                 throw new ForbiddenException("Tài khoản đã bị khoá");
             }
 
-            // 3. Tạo Refresh Token và lưu vào CSDL
-            var now = UtcNow();
+            // 4. Tạo Refresh Token và lưu vào CSDL
             var refreshTokenEntity = BuildRefreshToken(user.Id, ip, now, out string plaintextRefreshToken);
             await _unitOfWork.Repository<RefreshToken>().AddAsync(refreshTokenEntity, ct);
             await _unitOfWork.SaveChangesAsync(ct);
 
-            // 4. Trả kết quả kèm Access Token
+            // 5. Trả kết quả kèm Access Token
             return BuildAuthResponse(user, plaintextRefreshToken, refreshTokenEntity.ExpiresAt, now);
         }
 
@@ -191,15 +206,19 @@ namespace API.Services.Implementations
                 .FirstOrDefaultAsync(u => u.Id == userId && u.IsActive, ct)
                 ?? throw new UnauthorizedException("Tài khoản không tồn tại hoặc đã bị khoá");
 
+            // Người có access token (ví dụ máy để quên chưa khoá) cũng có thể dò mật khẩu qua đây: tính chung bộ đếm với login
+            var now = UtcNow();
+            EnsureNotLockedOut(user, now);
             if (!BCrypt.Net.BCrypt.Verify(request.CurrentPassword, user.PasswordHash))
             {
+                await RegisterFailedPasswordAsync(user, now, ct);
                 throw new BusinessException("Mật khẩu hiện tại không đúng.");
             }
 
             user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.NewPassword);
 
             // Đổi mật khẩu => mọi thiết bị phải đăng nhập lại (phòng trường hợp mật khẩu cũ đã bị lộ)
-            await _unitOfWork.RevokeActiveRefreshTokensAsync(user.Id, ip, "Người dùng đổi mật khẩu", UtcNow(), ct);
+            await _unitOfWork.RevokeActiveRefreshTokensAsync(user.Id, ip, "Người dùng đổi mật khẩu", now, ct);
             await _unitOfWork.SaveChangesAsync(ct);
         }
 
@@ -229,6 +248,48 @@ namespace API.Services.Implementations
         // 🔹 HELPERS
         // --------------------------------------------------------------------
         private DateTime UtcNow() => _timeProvider.GetUtcNow().UtcDateTime;
+
+        // Phản hồi không phụ thuộc mật khẩu gửi lên: trong lúc khoá, thử mật khẩu nào cũng nhận đúng câu này
+        private static void EnsureNotLockedOut(User? user, DateTime now)
+        {
+            if (user?.LockoutEnd is { } lockoutEnd && lockoutEnd > now)
+            {
+                var minutes = (int)Math.Ceiling((lockoutEnd - now).TotalMinutes);
+                throw new AccountLockedException(
+                    $"Tài khoản tạm khoá do nhập sai mật khẩu nhiều lần. Vui lòng thử lại sau {minutes} phút hoặc liên hệ quản trị viên.");
+            }
+        }
+
+        // Một lệnh UPDATE duy nhất: nhiều request sai song song vẫn đếm đủ (SQL Server khoá dòng khi cập nhật).
+        // ExecuteUpdate không đi qua SaveChangesAsync nên không sinh AuditLog và không đổi UpdatedAt mỗi lần gõ sai.
+        // Đủ ngưỡng thì khoá tạm và đếm lại từ 0, để lần khoá sau cũng cần đủ số lần sai.
+        private async Task RegisterFailedPasswordAsync(User user, DateTime now, CancellationToken ct)
+        {
+            var maxAttempts = _lockoutSettings.MaxFailedAttempts;
+            DateTime? lockoutEnd = now.AddMinutes(_lockoutSettings.LockoutMinutes);
+            var row = _unitOfWork.Repository<User>().Query(asNoTracking: false).Where(u => u.Id == user.Id);
+
+            await row.ExecuteUpdateAsync(s => s
+                .SetProperty(u => u.LockoutEnd, u => u.FailedLoginCount + 1 >= maxAttempts ? lockoutEnd : u.LockoutEnd)
+                .SetProperty(u => u.FailedLoginCount, u => u.FailedLoginCount + 1 >= maxAttempts ? 0 : u.FailedLoginCount + 1), ct);
+
+            if (await row.AnyAsync(u => u.LockoutEnd > now, ct))
+            {
+                _logger.LogWarning("Tài khoản {UserName} bị khoá tạm {Minutes} phút do nhập sai mật khẩu {Attempts} lần liên tiếp.",
+                    user.UserName, _lockoutSettings.LockoutMinutes, maxAttempts);
+            }
+        }
+
+        private async Task ResetFailedPasswordsAsync(User user, CancellationToken ct)
+        {
+            if (user.FailedLoginCount == 0 && user.LockoutEnd is null) return;
+
+            await _unitOfWork.Repository<User>().Query(asNoTracking: false)
+                .Where(u => u.Id == user.Id)
+                .ExecuteUpdateAsync(s => s
+                    .SetProperty(u => u.FailedLoginCount, 0)
+                    .SetProperty(u => u.LockoutEnd, (DateTime?)null), ct);
+        }
 
         private AuthResponse BuildAuthResponse(User user, string plaintextRefreshToken, DateTime refreshTokenExpiresAt, DateTime now)
         {

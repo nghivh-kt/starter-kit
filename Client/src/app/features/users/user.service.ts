@@ -37,4 +37,9 @@ export class UserService {
   resetPassword(id: number, newPassword: string): Observable<void> {
     return this.api.put<void>(`/users/${id}/reset-password`, { newPassword });
   }
+
+  /** Mở khoá tạm do nhập sai mật khẩu nhiều lần. */
+  unlock(id: number): Observable<void> {
+    return this.api.put<void>(`/users/${id}/unlock`, null);
+  }
 }

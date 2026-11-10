@@ -10,8 +10,9 @@ import {
   TemplateRef,
   viewChild,
 } from '@angular/core';
+import { DatePipe } from '@angular/common';
 import { rxResource } from '@angular/core/rxjs-interop';
-import { LucideKeyRound, LucidePencil, LucidePlus } from '@lucide/angular';
+import { LucideKeyRound, LucideLockOpen, LucidePencil, LucidePlus } from '@lucide/angular';
 import { finalize } from 'rxjs';
 import { UserResponse } from '@core/api';
 import { excelFileName, saveFile } from '@core/http/download';
@@ -39,6 +40,7 @@ import { UserService } from '../user.service';
 @Component({
   selector: 'app-user-list',
   imports: [
+    DatePipe,
     TableComponent,
     ButtonComponent,
     BadgeComponent,
@@ -118,7 +120,23 @@ export class UserListComponent {
     return [
       { label: 'Sửa', icon: LucidePencil, run: () => this.openForm(user) },
       { label: 'Đặt lại mật khẩu', icon: LucideKeyRound, run: () => this.resetting.set(user) },
+      ...(this.isLockedOut(user) ? [{ label: 'Mở khoá', icon: LucideLockOpen, run: () => this.unlock(user) }] : []),
     ];
+  }
+
+  /** Khoá tạm do nhập sai mật khẩu nhiều lần, tự hết hạn. Khác với "Đã khoá" (isActive = false) do admin đặt. */
+  protected isLockedOut(user: UserResponse): boolean {
+    return !!user.lockoutEnd && new Date(user.lockoutEnd).getTime() > Date.now();
+  }
+
+  private unlock(user: UserResponse): void {
+    this.users.unlock(user.id).subscribe({
+      next: () => {
+        this.toast.success(`Đã mở khoá tài khoản ${user.userName}`);
+        this.list.reload();
+      },
+      error: (error: unknown) => this.toast.fromError(error),
+    });
   }
 
   protected roleLabel(role: string): string {

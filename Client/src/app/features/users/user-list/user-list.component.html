@@ -29,9 +29,13 @@
 />
 
 <ng-template #statusTemplate let-user>
-  <app-badge [variant]="user.isActive ? 'success' : 'gray'">
-    {{ user.isActive ? 'Hoạt động' : 'Đã khoá' }}
-  </app-badge>
+  @if (!user.isActive) {
+    <app-badge variant="gray">Đã khoá</app-badge>
+  } @else if (isLockedOut(user)) {
+    <app-badge variant="warning">Tạm khoá đến {{ user.lockoutEnd | date: 'HH:mm' }}</app-badge>
+  } @else {
+    <app-badge variant="success">Hoạt động</app-badge>
+  }
 </ng-template>
 
 <ng-template #roleTemplate let-user>

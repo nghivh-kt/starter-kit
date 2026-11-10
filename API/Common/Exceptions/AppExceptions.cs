@@ -39,6 +39,13 @@ namespace API.Common.Exceptions
         public override string Code => ErrorCodes.NotFound;
     }
 
+    /// <summary>Tài khoản đang bị khoá tạm do nhập sai mật khẩu nhiều lần → 429</summary>
+    public class AccountLockedException(string message) : AppException(message)
+    {
+        public override int StatusCode => StatusCodes.Status429TooManyRequests;
+        public override string Code => ErrorCodes.AccountLocked;
+    }
+
     /// <summary>Xung đột với trạng thái hiện tại của tài nguyên → 409</summary>
     public class ConflictException(string message) : AppException(message)
     {

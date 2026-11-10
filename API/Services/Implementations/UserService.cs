@@ -150,9 +150,23 @@ namespace API.Services.Implementations
             var existingUser = await FindTrackedAsync(id, ct);
 
             existingUser.PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.NewPassword);
+            // Mật khẩu mới do admin đặt: người dùng đăng nhập được ngay, kể cả khi đang bị khoá tạm
+            existingUser.FailedLoginCount = 0;
+            existingUser.LockoutEnd = null;
 
             // Thu hồi toàn bộ refresh token của user đó.
             await _unitOfWork.RevokeActiveRefreshTokensAsync(existingUser.Id, _userContext.IpAddress, "Mật khẩu được đặt lại", _timeProvider.GetUtcNow().UtcDateTime, ct);
+            await _unitOfWork.SaveChangesAsync(ct);
+        }
+
+        public async Task UnlockAsync(int id, CancellationToken ct)
+        {
+            var existingUser = await FindTrackedAsync(id, ct);
+
+            existingUser.FailedLoginCount = 0;
+            existingUser.LockoutEnd = null;
+
+            // Đang bị khoá thì AuditLog ghi lại admin nào đã mở khoá; không bị khoá thì không có gì thay đổi
             await _unitOfWork.SaveChangesAsync(ct);
         }
 

@@ -175,6 +175,7 @@ Mọi exception khác (của .NET, thư viện, bug) đều là **500** và mess
 | `NotFoundException`, sai route | 404 | `NOT_FOUND` |
 | `ConflictException`; DB vi phạm unique / khoá ngoại / concurrency | 409 (không lộ lỗi SQL) | `CONFLICT` |
 | Vượt rate limit | 429 + header `Retry-After` | `TOO_MANY_REQUESTS` |
+| Tài khoản đang khoá tạm do nhập sai mật khẩu nhiều lần | 429 | `ACCOUNT_LOCKED` |
 | Còn lại (kể cả `ArgumentException`, `KeyNotFoundException`, lỗi SQL khác như timeout, deadlock) | 500, `detail` chung chung; chỉ Development có thêm `exception` | `INTERNAL_ERROR` |
 
 `traceId` trùng với cột `{TraceId}` trong log phía server: tìm đúng chuỗi này trong `logs/log-*.txt` để tra lỗi khi người dùng báo.
@@ -197,6 +198,10 @@ Cơ chế bảo vệ:
   `refresh` 120 lần/phút (`RateLimiting:Refresh`) vì mỗi user đang hoạt động tự gọi đều đặn theo hạn access token.
   Nhiều user sau 1 IP dùng chung bộ đếm, nên chỉnh theo số user dự kiến. Bộ đếm nằm trong bộ nhớ của từng instance.
 - **Chống dò tài khoản**: sai username và sai mật khẩu trả cùng thông báo, cùng thời gian xử lý.
+- **Khoá tạm theo tài khoản**: nhập sai mật khẩu 10 lần liên tiếp (đăng nhập hoặc đổi mật khẩu) ⇒ khoá 15 phút, trả 429 `ACCOUNT_LOCKED`
+  (`Lockout:MaxFailedAttempts`, `Lockout:LockoutMinutes`). Bổ sung cho rate limit theo IP, vốn không chặn được người thử chậm vào một tài khoản.
+  Trong lúc khoá, API không kiểm tra mật khẩu nên không dò được mật khẩu đúng. Đăng nhập đúng đưa bộ đếm về 0; admin mở khoá sớm bằng
+  `PUT /api/users/{id}/unlock` hoặc đặt lại mật khẩu. Bộ đếm cập nhật bằng `ExecuteUpdate`, nên lần gõ sai không sinh AuditLog. Phiên đang đăng nhập không bị thu hồi.
 - **Cookie** refresh token: `HttpOnly`, `Secure`, `SameSite`, `Path=/api/auth` (không gửi kèm các API khác).
   `CookieSameSite`: `Strict` (mặc định) khi client và API cùng site; `None` khi khác site (bắt buộc `CookieSecure = true`),
   khi đó `refresh`/`logout` trả 403 nếu header `Origin` không nằm trong `Cors:AllowedOrigins`.

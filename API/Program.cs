@@ -27,6 +27,7 @@ try
         .AddSwaggerDocumentation()                                // Startup/SwaggerConfiguration
         .AddJwtAuthentication(builder.Configuration)              // Security/JwtConfiguration
         .AddAuthRateLimiting(builder.Configuration)               // Security/RateLimitingConfiguration
+        .AddLoginLockout(builder.Configuration)                   // Security/LockoutSettings
         .AddAdminSeed(builder.Configuration);                     // Startup/AdminSeedConfiguration
 
     var app = builder.Build();

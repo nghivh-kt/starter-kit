@@ -25,6 +25,10 @@ namespace API.Models.DTOs
         public DateTime? UpdatedAt { get; set; }
         public DateTime? DeletedAt { get; set; }
         /// <summary>
+        /// Khoá tạm đến thời điểm này (UTC) do nhập sai mật khẩu nhiều lần. Null hoặc đã qua: không bị khoá.
+        /// </summary>
+        public DateTime? LockoutEnd { get; set; }
+        /// <summary>
         /// Phiên bản của bản ghi. Gửi lại nguyên giá trị này khi PUT để phát hiện bản ghi đã bị người khác sửa.
         /// </summary>
         public byte[] RowVersion { get; set; } = null!;

@@ -104,6 +104,37 @@ describe('UserListComponent', () => {
     expect((fixture.nativeElement as HTMLElement).querySelector('[role="dialog"]')).toBeNull();
   });
 
+  it('tài khoản đang khoá tạm: hiện nhãn và thao tác "Mở khoá", bấm thì gọi API rồi tải lại', async () => {
+    const lockedOut = { ...USER, isActive: true, lockoutEnd: new Date(Date.now() + 10 * 60_000).toISOString() };
+    setup();
+    listRequest().flush(page([lockedOut]));
+    await fixture.whenStable();
+
+    expect(text()).toContain('Tạm khoá đến');
+    rowMenu()!.click();
+    await fixture.whenStable();
+    menuItem('Mở khoá')!.click();
+
+    const unlock = mock.expectOne('/api/users/5/unlock');
+    expect(unlock.request.method).toBe('PUT');
+    unlock.flush(null);
+    TestBed.tick();
+    listRequest().flush(page([{ ...lockedOut, lockoutEnd: null }]));
+    await fixture.whenStable();
+    expect(text()).toContain('Hoạt động');
+  });
+
+  it('khoá tạm đã hết hạn thì không còn nhãn và không có thao tác "Mở khoá"', async () => {
+    setup();
+    listRequest().flush(page([{ ...USER, isActive: true, lockoutEnd: new Date(Date.now() - 60_000).toISOString() }]));
+    await fixture.whenStable();
+
+    expect(text()).not.toContain('Tạm khoá');
+    rowMenu()!.click();
+    await fixture.whenStable();
+    expect(menuItem('Mở khoá')).toBeUndefined();
+  });
+
   it('API lỗi thì báo một lần và không làm hỏng trang', async () => {
     setup();
     listRequest().flush({ detail: 'Lỗi hệ thống' }, { status: 500, statusText: 'Server Error' });
