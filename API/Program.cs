@@ -19,6 +19,7 @@ try
         .AddDatabase(builder.Configuration)                       // Startup/DatabaseConfiguration: EF, Dapper, UnitOfWork, health check DB
         .AddApplicationServices()                                 // Startup/ApplicationServicesConfiguration: service nghiệp vụ, Mapster, validators
         .AddExcelExport(builder.Configuration)                    // Startup/ExportConfiguration
+        .AddBackgroundJobs(builder.Configuration)                 // Startup/BackgroundJobsConfiguration: dọn refresh token hết hạn
         .AddApiControllers(builder.Environment)                   // Startup/ApiConfiguration
         .AddErrorHandling()                                       //   Problem Details + GlobalExceptionHandler
         .AddClientCors(builder.Configuration)                     //   CORS cho client

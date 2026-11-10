@@ -206,6 +206,9 @@ Cơ chế bảo vệ:
   `CookieSameSite`: `Strict` (mặc định) khi client và API cùng site; `None` khi khác site (bắt buộc `CookieSecure = true`),
   khi đó `refresh`/`logout` trả 403 nếu header `Origin` không nằm trong `Cors:AllowedOrigins`.
 - Khoá tài khoản, đặt lại / đổi mật khẩu ⇒ thu hồi mọi refresh token.
+- **Dọn bảng `RefreshTokens`**: mỗi lần refresh sinh một dòng, nên một job chạy trong API (`Services/Background`, đăng ký ở
+  `Startup/BackgroundJobsConfiguration.cs`) xoá token đã hết hạn quá 30 ngày (`Cleanup:RefreshTokenRetentionDays`),
+  một phút sau khi app khởi động rồi mỗi 24 giờ. SQL Server Express không có SQL Agent nên việc này nằm trong app.
 
 Cấu hình thời hạn token và cookie trong `JwtSettings` / `RefreshTokenSettings` của `appsettings.json`.
 
