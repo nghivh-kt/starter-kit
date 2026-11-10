@@ -68,14 +68,11 @@ namespace API.Services.Implementations
         // Danh sách trên màn hình và file Excel dùng chung bộ lọc, nên luôn cho cùng một kết quả
         private IQueryable<User> BuildListQuery(UserQueryRequest query)
         {
-            var source = _unitOfWork.Repository<User>().Query(asNoTracking: true)
+            return _unitOfWork.Repository<User>().Query(asNoTracking: true)
                 .ApplySearch(query.Search, x => x.UserName, x => x.FullName, x => x.Email)
-                .ApplyEquals(x => x.IsActive, query.IsActive)
-                .ApplyEquals(x => x.Role, query.Role);
-
-            // Chỉ cho phép sắp xếp theo các cột trong whitelist, mặc định Id
-            var sortBy = query.SortBy != null && SortColumns.TryGetValue(query.SortBy, out var column) ? column : nameof(User.Id);
-            return source.ApplySorting(sortBy, query.Desc);
+                .WhereIf(query.IsActive.HasValue, x => x.IsActive == query.IsActive)
+                .WhereIf(!string.IsNullOrEmpty(query.Role), x => x.Role == query.Role)
+                .ApplySorting(query.SortBy, query.Desc, SortColumns);
         }
 
         public async Task<UserResponse> GetUserByIdAsync(int id, CancellationToken ct)
@@ -120,7 +117,6 @@ namespace API.Services.Implementations
             var isBeingDeactivated = existingUser.IsActive && !newIsActive;
 
             // Không cho Admin tự khoá hoặc tự đổi vai trò của chính mình (sẽ tự mất quyền quản trị).
-            // UserId là null với token cấp trước khi có claim "uid" — khi đó quy tắc này chưa áp dụng.
             if (_userContext.UserId == existingUser.Id && (isBeingDeactivated || request.Role != existingUser.Role))
             {
                 throw new BusinessException("Bạn không thể tự khoá hoặc tự đổi vai trò của chính mình.");

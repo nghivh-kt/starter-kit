@@ -58,7 +58,7 @@ Copy the Category vertical slice:
 9. A migration
 
 Patterns to follow:
-- **Dynamic sorting** must whitelist columns; see `SortColumns` in `CategoryService`. `QueryableExtensions.ApplySorting` appends `Id` as a tiebreaker so paging stays stable.
+- **List queries** (`Data/Extensions/QueryableExtensions.cs`): filter with `WhereIf(request.X.HasValue, x => x.X == request.X)` so values become SQL parameters, search with `ApplySearch`, and sort with `ApplySorting(request.SortBy, request.Desc, SortColumns)`. The `SortColumns` whitelist is required (see `CategoryService`); unknown columns fall back to `Id`, and `Id` is appended as a tiebreaker so paging stays stable.
 - **Updates**: load the entity with `Query(asNoTracking: false)`, change its properties, then call `SaveChangesAsync`. No `Update()` call is needed.
 - **`PUT`** returns 200 with the updated record.
 - **Concurrency**: `AuditableEntity.RowVersion` is a SQL Server rowversion. Return it in the response, accept it in the update request, and compare it in the service; see `CategoryService.UpdateAsync`.

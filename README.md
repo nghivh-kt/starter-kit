@@ -126,7 +126,9 @@ Phần Client: chạy `npm run api:gen` trong `Client/` để có kiểu mới, 
 - **Mapping**: Mapster tự map property trùng tên; cấu hình đặc biệt viết trong `Common/Mappings/MappingConfig.cs`.
 - **Transaction**: `IUnitOfWork.ExecuteInTransactionAsync` bọc cả lệnh EF và Dapper. Lệnh ghi qua Dapper không có AuditLog,
   không tự gán `CreatedAt`/`UpdatedAt`; lỗi unique/khoá ngoại vẫn trả 409 và `DateTime` đọc lên vẫn là UTC như EF.
-- **Sắp xếp động**: chỉ cho phép theo danh sách cột cố định (xem `SortColumns` trong `CategoryService`).
+- **Truy vấn danh sách** (`Data/Extensions/QueryableExtensions.cs`): lọc bằng `WhereIf(request.X.HasValue, x => x.X == request.X)`
+  để giá trị thành tham số SQL; tìm kiếm bằng `ApplySearch`; sắp xếp bằng `ApplySorting(request.SortBy, request.Desc, SortColumns)`.
+  `SortColumns` là danh sách cột được phép (xem `CategoryService`): cột khác bị bỏ qua và sắp theo `Id`.
   `ApplySorting` tự thêm khoá phụ `Id` để phân trang ổn định khi nhiều dòng trùng giá trị sắp xếp.
 - **Entity kế thừa `AuditableEntity`** — `EFDbContext` tự làm, service không cần viết:
   - `CreatedAt` / `UpdatedAt` được gán khi thêm / sửa.

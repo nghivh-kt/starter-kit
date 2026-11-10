@@ -1,3 +1,6 @@
+using API.Data;
+using API.Data.Extensions;
+using Microsoft.EntityFrameworkCore;
 using API.Data.Interfaces;
 using API.Models.Entities;
 using API.Tests.Infrastructure;
@@ -26,6 +29,28 @@ public sealed class DataAccessTests(ApiFixture fixture)
 
         Assert.Equal(category.Name, bySingleKey?.Name);
         Assert.Equal(category.Name, byKeyArray?.Name);
+    }
+
+    [Fact]
+    public async Task ListQuery_SendsFilterAndSearchValues_AsSqlParameters()
+    {
+        await using var scope = Api.Services.CreateAsyncScope();
+        var db = scope.ServiceProvider.GetRequiredService<EFDbContext>();
+        bool? isActive = true;
+        const string keyword = "tu-khoa-tim-kiem";
+
+        var sql = db.Categories
+            .ApplySearch(keyword, c => c.Name)
+            .WhereIf(isActive.HasValue, c => c.IsActive == isActive)
+            .ApplySorting("name", desc: false, new Dictionary<string, string> { ["name"] = nameof(Category.Name) })
+            .ToQueryString();
+
+        // ToQueryString in giá trị tham số ở các dòng DECLARE phía trên, câu lệnh thật bắt đầu từ SELECT.
+        // Giá trị nhúng thẳng vào câu lệnh sẽ làm SQL Server lưu một execution plan riêng cho mỗi giá trị khác nhau.
+        var statement = sql[sql.IndexOf("SELECT", StringComparison.Ordinal)..];
+        Assert.DoesNotContain(keyword, statement);
+        Assert.Contains("LIKE @", statement);
+        Assert.Contains("[IsActive] = @", statement);
     }
 
     [Fact]

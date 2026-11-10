@@ -13,7 +13,7 @@ function run(command, cwd, env = {}) {
 }
 
 run('dotnet tool restore', apiDir);
-// Release: không có TestExceptionController (#if DEBUG), và không bị khoá file khi app đang chạy ở Debug
+// Release: không bị khoá file khi app đang chạy ở Debug
 run('dotnet build -c Release --nologo -v q', apiDir);
 run('dotnet swagger tofile --output openapi.json bin/Release/net10.0/API.dll v1', apiDir, {
   // Công cụ chạy Program.cs và khởi động host (không mở cổng), nên cấu hình phải vượt qua được ValidateOnStart.

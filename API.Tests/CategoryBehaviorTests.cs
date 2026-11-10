@@ -156,6 +156,44 @@ public sealed class CategoryBehaviorTests(ApiFixture fixture)
         Assert.Equal(withPercent.Id, Assert.Single(page!.Items).Id);
     }
 
+    [Fact]
+    public async Task Filter_ByIsActive_ReturnsOnlyMatchingRows()
+    {
+        var client = await AdminClientAsync();
+        var token = Guid.NewGuid().ToString("N")[..12];
+        var active = await client.CreateCategoryAsync($"on{token}");
+        var inactive = await client.CreateCategoryAsync($"off{token}");
+        await client.PutAsJsonAsync($"/api/categories/{inactive.Id}",
+            new CategoryUpdateRequest { Name = inactive.Name, IsActive = false, RowVersion = inactive.RowVersion });
+
+        async Task<int[]> IdsAsync(string query) =>
+            (await client.GetFromJsonAsync<PagedResult<CategoryResponse>>($"/api/categories?search={token}{query}"))!
+                .Items.Select(i => i.Id).Order().ToArray();
+
+        Assert.Equal([active.Id], await IdsAsync("&isActive=true"));
+        Assert.Equal([inactive.Id], await IdsAsync("&isActive=false"));
+        Assert.Equal(new[] { active.Id, inactive.Id }.Order().ToArray(), await IdsAsync(""));
+    }
+
+    [Fact]
+    public async Task Filter_UsersByRole_ReturnsOnlyThatRole()
+    {
+        var client = await AdminClientAsync();
+        var user = await Api.CreateUserAsync(role: "User");
+        var admin = await Api.CreateUserAsync(role: "Admin");
+
+        async Task<int[]> IdsAsync(string role) =>
+            (await client.GetFromJsonAsync<PagedResult<UserResponse>>($"/api/users?pageSize=200&role={role}"))!
+                .Items.Select(i => i.Id).ToArray();
+
+        var users = await IdsAsync("User");
+        var admins = await IdsAsync("Admin");
+        Assert.Contains(user.Id, users);
+        Assert.DoesNotContain(admin.Id, users);
+        Assert.Contains(admin.Id, admins);
+        Assert.DoesNotContain(user.Id, admins);
+    }
+
     private async Task<HttpClient> AdminClientAsync()
     {
         var admin = await Api.LoginAsAdminAsync();

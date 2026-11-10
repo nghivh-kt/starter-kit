@@ -67,14 +67,13 @@ namespace API.Services.Implementations
             // 1. Bản ghi đã xoá mềm tự động bị loại nhờ global query filter (EFDbContext)
             var source = _unitOfWork.Repository<Category>().Query(asNoTracking: true);
 
-            // 2. Tìm kiếm + lọc (mỗi hàm tự bỏ qua khi tham số null)
+            // 2. Tìm kiếm + lọc (bỏ qua khi client không gửi tham số)
             source = source
                 .ApplySearch(query.Search, x => x.Name, x => x.Description)
-                .ApplyEquals(x => x.IsActive, query.IsActive);
+                .WhereIf(query.IsActive.HasValue, x => x.IsActive == query.IsActive);
 
-            // 3. Sắp xếp theo whitelist, mặc định Id
-            var sortBy = query.SortBy != null && SortColumns.TryGetValue(query.SortBy, out var column) ? column : nameof(Category.Id);
-            return source.ApplySorting(sortBy, query.Desc);
+            // 3. Sắp xếp theo whitelist, cột không có trong danh sách thì theo Id
+            return source.ApplySorting(query.SortBy, query.Desc, SortColumns);
         }
 
         public async Task<CategoryResponse> GetByIdAsync(int id, CancellationToken ct)
