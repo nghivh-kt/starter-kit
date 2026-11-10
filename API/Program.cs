@@ -21,6 +21,7 @@ try
         .AddExcelExport(builder.Configuration)                    // Startup/ExportConfiguration
         .AddBackgroundJobs(builder.Configuration)                 // Startup/BackgroundJobsConfiguration: dọn refresh token hết hạn
         .AddApiControllers(builder.Environment)                   // Startup/ApiConfiguration
+        .AddClientApp()                                           // Startup/ClientAppConfiguration: phục vụ bản build Angular
         .AddErrorHandling()                                       //   Problem Details + GlobalExceptionHandler
         .AddClientCors(builder.Configuration)                     //   CORS cho client
         .AddProxyForwardedHeaders(builder.Configuration)          //   IP thật sau reverse proxy

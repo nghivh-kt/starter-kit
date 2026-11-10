@@ -11,7 +11,7 @@ npm install
 npm start      # http://localhost:4200
 ```
 
-`proxy.conf.json` chuyển mọi request `/api` sang API ở `http://localhost:5157`, nên trình duyệt thấy Client và API cùng một origin. Production cũng theo mô hình này. Không cần file environment: một bản build dùng được cho mọi môi trường.
+`proxy.conf.json` chuyển mọi request `/api` sang API ở `http://localhost:5157`, nên trình duyệt thấy Client và API cùng một origin. Production cũng vậy: API phục vụ luôn bản build Angular (thư mục `wwwroot` trong gói triển khai), nên Client không cần cấu hình địa chỉ API và không cần `web.config` riêng. Không cần file environment: một bản build dùng được cho mọi môi trường.
 
 ## Đăng nhập
 

@@ -9,6 +9,7 @@ namespace API.Startup
         {
             // 1. Đầu tiên: mọi middleware sau đều thấy đúng IP client / scheme HTTPS
             app.UseForwardedHeaders();
+            app.UseSecurityHeaders();
 
             // 2. Log mỗi request (đặt sớm để đo đủ thời gian và thấy status cuối cùng, kể cả lỗi)
             app.UseRequestLogging();
@@ -31,6 +32,9 @@ namespace API.Startup
                 app.UseHttpsRedirection();
             }
 
+            // File của Angular (chỉ khi có wwwroot, tức bản đã publish): không cần đăng nhập nên đặt trước authentication
+            app.UseClientApp();
+
             // 4. CORS trước authentication: preflight (OPTIONS) không mang token
             app.UseCors(ApiConfiguration.ClientCorsPolicy);
 
@@ -47,6 +51,7 @@ namespace API.Startup
         {
             app.MapControllers();
             app.MapHealthCheckEndpoints();
+            app.MapClientAppFallback();
 
             return app;
         }

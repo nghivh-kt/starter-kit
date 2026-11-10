@@ -214,11 +214,12 @@ Cấu hình thời hạn token và cookie trong `JwtSettings` / `RefreshTokenSet
 
 ## Triển khai (production)
 
-Triển khai lên IIS: xem [deploy/iis/README.md](deploy/iis/README.md).
+Triển khai lên IIS: xem [deploy/iis/README.md](deploy/iis/README.md). Gói triển khai là một thư mục: API kèm bản build Angular
+trong `wwwroot`, chạy trên **một site IIS** (`Startup/ClientAppConfiguration.cs`); `deploy.ps1` tự backup database trước khi chạy migration.
 
 - Đặt `ASPNETCORE_ENVIRONMENT=Production` (mặc định) và cấu hình qua biến môi trường.
-- Ngoài Development ứng dụng bật **HSTS + HTTPS redirection**. Nếu TLS kết thúc ở reverse proxy (IIS/Nginx),
-  khai báo IP proxy trong `ForwardedHeaders:KnownProxies`, hoặc dải mạng trong `ForwardedHeaders:KnownNetworks` (ví dụ `10.0.0.0/8`)
+- Ngoài Development ứng dụng bật **HSTS + HTTPS redirection**. Chạy trong IIS thì app thấy thẳng IP thật của client và HTTPS, không cần cấu hình gì thêm.
+  Nếu đặt sau một reverse proxy khác (Nginx, load balancer) mà TLS kết thúc ở proxy, thì khai báo IP proxy trong `ForwardedHeaders:KnownProxies`, hoặc dải mạng trong `ForwardedHeaders:KnownNetworks` (ví dụ `10.0.0.0/8`)
   khi IP proxy thay đổi như Docker/Kubernetes/cloud LB. Thiếu bước này thì app thấy mọi người dùng là IP của proxy:
   rate limit tính chung cho tất cả, AuditLog ghi sai IP và có thể lặp redirect HTTPS.
 - Load balancer / giám sát: `/health/live` (tiến trình còn sống), `/health/ready` (kết nối được DB). Không cần đăng nhập.

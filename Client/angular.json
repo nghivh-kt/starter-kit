@@ -29,8 +29,7 @@
               {
                 "glob": "**/*",
                 "input": "public"
-              },
-              "src/web.config"
+              }
             ],
             "styles": [
               "@fontsource-variable/inter/wght.css",

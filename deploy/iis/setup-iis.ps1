@@ -1,15 +1,18 @@
 ﻿<#
 .SYNOPSIS
     Chuẩn bị IIS và database cho StarterKit. Chỉ cần chạy một lần; chạy lại vẫn an toàn.
-    Chỉ tạo và sửa các site, app pool, database mang tên trong tham số; không đụng các site khác.
-    Riêng cấu hình proxy của ARR nằm ở cấp máy chủ: site khác không dùng reverse proxy thì không bị ảnh hưởng.
+    Tạo 1 site HTTPS và 1 app pool: API phục vụ luôn file Angular, nên không cần URL Rewrite hay ARR.
+    Chỉ tạo và sửa site, app pool, database mang tên trong tham số; không đụng các site khác.
 
 .DESCRIPTION
     Secret được lưu trong biến môi trường của app pool, không nằm trong repo hay web.config.
     Mật khẩu admin đầu tiên được sinh ngẫu nhiên và ghi vào -AdminPasswordFile.
+    Máy đã cài bản 2 site cũ (site "<SiteName>Api" + ARR): biến môi trường được chuyển sang app pool mới,
+    rồi site và app pool cũ bị gỡ.
 
 .EXAMPLE
-    .\setup-iis.ps1 -CertificateThumbprint ABC123... -TrustCertificate
+    .\setup-iis.ps1 -TrustCertificate
+    .\setup-iis.ps1 -CertificateThumbprint ABC123... -SqlServer 'db01\SQLEXPRESS' -Database 'StarterKit'
 #>
 #Requires -RunAsAdministrator
 [CmdletBinding()]
@@ -17,8 +20,6 @@ param(
     [string] $InstallRoot = 'C:\inetpub\StarterKit',
     [string] $SiteName = 'StarterKit',
     [int] $SitePort = 8443,
-    [string] $ApiSiteName = 'StarterKitApi',
-    [int] $ApiPort = 8091,
     [string] $SqlServer = 'localhost\SQLEXPRESS',
     [string] $Database = 'StarterKitLocal',
     [string] $AdminPasswordFile = "$env:USERPROFILE\StarterKit-admin-password.txt",
@@ -31,17 +32,12 @@ $ErrorActionPreference = 'Stop'
 
 Add-Type -Path "$env:windir\system32\inetsrv\Microsoft.Web.Administration.dll"
 
-foreach ($module in @(
-        @{ Name = 'URL Rewrite'; Path = "$env:windir\system32\inetsrv\rewrite.dll" },
-        @{ Name = 'ARR'; Path = "$env:ProgramFiles\IIS\Application Request Routing\requestRouter.dll" },
-        @{ Name = 'ASP.NET Core Module'; Path = "$env:ProgramFiles\IIS\Asp.Net Core Module\V2\aspnetcorev2.dll" })) {
-    if (-not (Test-Path $module.Path)) { throw "Chưa cài $($module.Name). Xem deploy/iis/README.md" }
+if (-not (Test-Path "$env:ProgramFiles\IIS\Asp.Net Core Module\V2\aspnetcorev2.dll")) {
+    throw 'Chưa cài .NET Hosting Bundle (ASP.NET Core Module). Xem deploy/iis/README.md'
 }
 
-$clientPath = Join-Path $InstallRoot 'client'
-$apiPath = Join-Path $InstallRoot 'api'
-$clientPool = "${SiteName}Client"
-$apiPool = "${ApiSiteName}"
+$appPool = $SiteName
+$logsPath = Join-Path $InstallRoot 'logs'
 
 # --- Chứng chỉ ---
 if ($CertificateThumbprint) {
@@ -65,7 +61,7 @@ if ($TrustCertificate) {
 }
 
 # --- Thư mục ---
-foreach ($path in $clientPath, $apiPath, (Join-Path $apiPath 'logs')) {
+foreach ($path in $InstallRoot, $logsPath) {
     New-Item -ItemType Directory -Force -Path $path | Out-Null
 }
 
@@ -73,19 +69,14 @@ foreach ($path in $clientPath, $apiPath, (Join-Path $apiPath 'logs')) {
 Write-Host '==> App pool và site' -ForegroundColor Cyan
 $manager = [Microsoft.Web.Administration.ServerManager]::new()
 
-foreach ($poolName in $clientPool, $apiPool) {
-    $pool = $manager.ApplicationPools[$poolName]
-    if (-not $pool) { $pool = $manager.ApplicationPools.Add($poolName) }
-    $pool.ManagedRuntimeVersion = '' # No Managed Code: .NET hiện đại không chạy trong CLR của IIS
-}
-
+$pool = $manager.ApplicationPools[$appPool]
+if (-not $pool) { $pool = $manager.ApplicationPools.Add($appPool) }
+$pool.ManagedRuntimeVersion = '' # No Managed Code: .NET hiện đại không chạy trong CLR của IIS
 # ASP.NET Core lưu khoá Data Protection trong profile của app pool: không nạp thì khoá mất mỗi lần khởi động lại
-$apiProcessModel = $manager.ApplicationPools[$apiPool].ProcessModel
-$apiProcessModel.LoadUserProfile = $true
-$apiProcessModel['setProfileEnvironment'] = $true
+$pool.ProcessModel.LoadUserProfile = $true
+$pool.ProcessModel['setProfileEnvironment'] = $true
 
-# Secret nằm ở biến môi trường của app pool. Giá trị đã có thì giữ nguyên, để chạy lại không làm mọi phiên đăng xuất
-$variables = $manager.ApplicationPools[$apiPool].GetChildElement('environmentVariables').GetCollection()
+$variables = $pool.GetChildElement('environmentVariables').GetCollection()
 function Get-PoolVariable([string] $Name) {
     $variables | Where-Object { $_['name'] -eq $Name } | Select-Object -First 1
 }
@@ -106,54 +97,56 @@ function New-Secret([int] $Bytes) {
     return [System.BitConverter]::ToString($buffer).Replace('-', '').ToLowerInvariant()
 }
 
+# Bản 2 site cũ: giữ lại cấu hình (connection string, khoá JWT...) đang nằm ở app pool của API cũ
+$legacyApiPool = $manager.ApplicationPools["${SiteName}Api"]
+if ($legacyApiPool) {
+    foreach ($legacy in $legacyApiPool.GetChildElement('environmentVariables').GetCollection()) {
+        if (Set-PoolVariableIfMissing $legacy['name'] $legacy['value']) {
+            Write-Host "    Chuyển biến $($legacy['name']) từ app pool ${SiteName}Api"
+        }
+    }
+}
+
+# Secret nằm ở biến môi trường của app pool. Giá trị đã có thì giữ nguyên, để chạy lại không làm mọi phiên đăng xuất
 [void](Set-PoolVariableIfMissing 'ConnectionStrings__DefaultConnection' "Server=$SqlServer;Database=$Database;Integrated Security=true;TrustServerCertificate=true")
 [void](Set-PoolVariableIfMissing 'JwtSettings__SecretKey' (New-Secret 48))
 
-$apiSite = $manager.Sites[$ApiSiteName]
-if (-not $apiSite) {
-    # Chỉ nghe ở 127.0.0.1: bên ngoài không gọi trực tiếp được, mọi request phải qua site public
-    $apiSite = $manager.Sites.Add($ApiSiteName, 'http', "127.0.0.1:${ApiPort}:", $apiPath)
-    $apiSite.Applications['/'].ApplicationPoolName = $apiPool
-}
-
 $site = $manager.Sites[$SiteName]
 if (-not $site) {
-    $site = $manager.Sites.Add($SiteName, "*:${SitePort}:", $clientPath, $certificate.GetCertHash(), 'MY')
-    $site.Applications['/'].ApplicationPoolName = $clientPool
+    $site = $manager.Sites.Add($SiteName, "*:${SitePort}:", $InstallRoot, $certificate.GetCertHash(), 'MY')
 }
+# Site đã có (kể cả site public của bản 2 site cũ): trỏ về thư mục và app pool mới
+$site.Applications['/'].VirtualDirectories['/'].PhysicalPath = $InstallRoot
+$site.Applications['/'].ApplicationPoolName = $appPool
 
-$config = $manager.GetApplicationHostConfiguration()
-
-# ARR: bật proxy, giữ Host gốc, X-Forwarded-For chỉ chứa IP (không kèm cổng)
-$proxy = $config.GetSection('system.webServer/proxy')
-$proxy['enabled'] = $true
-$proxy['preserveHostHeader'] = $true
-$proxy['reverseRewriteHostInResponseHeaders'] = $false
-$proxy['includePortInXForwardedFor'] = $false
-
-# Cho phép quy tắc /api trong web.config đặt header X-Forwarded-Proto. Chỉ áp dụng cho site này
-$allowed = $config.GetSection('system.webServer/rewrite/allowedServerVariables', $SiteName).GetCollection()
-if (-not ($allowed | Where-Object { $_['name'] -eq 'HTTP_X_FORWARDED_PROTO' })) {
-    $entry = $allowed.CreateElement('add')
-    $entry['name'] = 'HTTP_X_FORWARDED_PROTO'
-    [void]$allowed.Add($entry)
+# Gỡ bản 2 site cũ: site API chỉ nghe 127.0.0.1 và hai app pool riêng
+foreach ($legacySite in @("${SiteName}Api")) {
+    if ($manager.Sites[$legacySite]) {
+        $manager.Sites.Remove($manager.Sites[$legacySite])
+        Write-Host "    Gỡ site cũ $legacySite"
+    }
+}
+foreach ($legacyPool in @("${SiteName}Api", "${SiteName}Client")) {
+    if ($legacyPool -ne $appPool -and $manager.ApplicationPools[$legacyPool]) {
+        $manager.ApplicationPools.Remove($manager.ApplicationPools[$legacyPool])
+        Write-Host "    Gỡ app pool cũ $legacyPool"
+    }
 }
 
 $manager.CommitChanges()
 
-# --- Quyền thư mục: chỉ đọc, riêng logs của API được ghi ---
+# --- Quyền thư mục: chỉ đọc, riêng logs được ghi ---
 Write-Host '==> Quyền thư mục' -ForegroundColor Cyan
 foreach ($grant in @(
-        @{ Path = $clientPath; Rule = "IIS AppPool\${clientPool}:(OI)(CI)RX" },
-        @{ Path = $apiPath; Rule = "IIS AppPool\${apiPool}:(OI)(CI)RX" },
-        @{ Path = (Join-Path $apiPath 'logs'); Rule = "IIS AppPool\${apiPool}:(OI)(CI)M" })) {
+        @{ Path = $InstallRoot; Rule = "IIS AppPool\${appPool}:(OI)(CI)RX" },
+        @{ Path = $logsPath; Rule = "IIS AppPool\${appPool}:(OI)(CI)M" })) {
     & icacls $grant.Path /grant $grant.Rule /Q | Out-Null
     if ($LASTEXITCODE -ne 0) { throw "icacls thất bại cho $($grant.Path)" }
 }
 
 # --- Database: app pool đăng nhập bằng Windows, chỉ có quyền đọc ghi trên database này ---
 Write-Host "==> Database $Database" -ForegroundColor Cyan
-$login = "IIS APPPOOL\$apiPool"
+$login = "IIS APPPOOL\$appPool"
 $sql = @"
 SET NOCOUNT ON;
 IF DB_ID(N'$Database') IS NULL CREATE DATABASE [$Database];
@@ -176,7 +169,7 @@ if ($LASTEXITCODE -ne 0) { throw 'Không cấp được quyền database' }
 
 # --- Mật khẩu admin đầu tiên: chỉ sinh khi database chưa có user, deploy.ps1 xoá biến này sau khi tạo xong ---
 $manager = [Microsoft.Web.Administration.ServerManager]::new()
-$variables = $manager.ApplicationPools[$apiPool].GetChildElement('environmentVariables').GetCollection()
+$variables = $manager.ApplicationPools[$appPool].GetChildElement('environmentVariables').GetCollection()
 $usersTableExists = (& sqlcmd -S $SqlServer -d $Database -E -C -h -1 -W -Q "SET NOCOUNT ON; SELECT COUNT(*) FROM sys.tables WHERE name = 'Users'" | Select-Object -First 1).Trim() -eq '1'
 $hasUsers = $usersTableExists -and ((& sqlcmd -S $SqlServer -d $Database -E -C -h -1 -W -Q "SET NOCOUNT ON; SELECT COUNT(*) FROM Users" | Select-Object -First 1).Trim() -ne '0')
 

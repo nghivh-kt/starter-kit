@@ -1,12 +1,13 @@
 ﻿<#
 .SYNOPSIS
     Tạo gói triển khai trong thư mục publish/ ở gốc repo. Không đụng gì tới IIS hay database.
-    Kết quả: publish/api (API), publish/client (Angular), publish/migrate.sql (cập nhật database).
+    Kết quả: publish/app (API, bản build Angular nằm trong app/wwwroot) và publish/migrate.sql (cập nhật database).
 #>
 $ErrorActionPreference = 'Stop'
 
 $root = (Resolve-Path "$PSScriptRoot\..\..").Path
 $output = Join-Path $root 'publish'
+$app = Join-Path $output 'app'
 
 function Invoke-Checked([string] $Title, [scriptblock] $Command) {
     Write-Host "==> $Title" -ForegroundColor Cyan
@@ -21,7 +22,7 @@ if (Test-Path $output) { Remove-Item $output -Recurse -Force }
 New-Item -ItemType Directory -Path $output | Out-Null
 
 Invoke-Checked 'Build API' {
-    dotnet publish "$root\API\API.csproj" -c Release -o "$output\api" --nologo --verbosity quiet
+    dotnet publish "$root\API\API.csproj" -c Release -o $app --nologo --verbosity quiet
 }
 
 Push-Location "$root\Client"
@@ -31,7 +32,10 @@ try {
 finally {
     Pop-Location
 }
-Copy-Item "$root\Client\dist\starter-kit-client\browser" "$output\client" -Recurse
+# API phục vụ file trong wwwroot (Startup/ClientAppConfiguration.cs): /api vào controller, còn lại là Angular
+$clientBuild = Get-ChildItem "$root\Client\dist\*\browser" -Directory | Select-Object -First 1
+if (-not $clientBuild) { throw 'Không tìm thấy bản build Angular trong Client/dist/*/browser' }
+Copy-Item $clientBuild.FullName (Join-Path $app 'wwwroot') -Recurse
 
 # Công cụ EF cần khởi động cấu hình của app nhưng không kết nối database khi tạo script.
 # Các giá trị giả này chỉ tồn tại trong tiến trình của script.
