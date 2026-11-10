@@ -23,7 +23,7 @@ npm start      # http://localhost:4200
 
 Mọi lỗi HTTP đến component đều là `ApiError` (`message`, `code`, `errors`, `traceId`).
 
-- Mất mạng, 403, 429, 5xx: `apiErrorInterceptor` tự hiện toast.
+- Mất mạng, 403, 429, 5xx: `apiErrorInterceptor` tự hiện toast. Toast lỗi không tự tắt (người dùng cần thời gian chép "Mã tra cứu"), các loại khác tắt sau 4 giây; cùng một lỗi đang hiện thì không chồng thêm, tối đa 5 toast.
 - Các lỗi khác: gọi `toast.fromError(error)` trong nhánh `error`. Hàm này không báo trùng lỗi đã có toast.
 - Lỗi theo field (400): `applyApiErrors(form, error)` gán lỗi vào đúng ô của form.
 - Request chạy ngầm: đặt `BACKGROUND_REQUEST` trong `HttpContext` để không hiện thanh tiến trình và toast.

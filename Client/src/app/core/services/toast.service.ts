@@ -3,6 +3,11 @@ import { ApiError } from '@core/errors/api-error';
 
 export type ToastType = 'success' | 'error' | 'info' | 'warning';
 
+/** Thông báo không phải lỗi tự tắt sau thời gian này. */
+export const TOAST_DURATION_MS = 4000;
+/** Số thông báo hiện cùng lúc tối đa; thêm nữa thì bỏ cái cũ nhất. */
+export const MAX_TOASTS = 5;
+
 export interface Toast {
   id: number;
   message: string;
@@ -39,11 +44,14 @@ export class ToastService {
   }
 
   private add(message: string, type: ToastType) {
-    const id = this.counter++;
-    this.toasts.update((current) => [...current, { id, message, type }]);
+    // Cùng một lỗi lặp lại (ví dụ bấm lưu nhiều lần khi mất mạng): đã đang hiện thì không chồng thêm
+    if (type === 'error' && this.toasts().some((toast) => toast.type === 'error' && toast.message === message)) return;
 
-    // Tự động tắt sau 3 giây
-    setTimeout(() => this.remove(id), 3000);
+    const id = this.counter++;
+    this.toasts.update((current) => [...current, { id, message, type }].slice(-MAX_TOASTS));
+
+    // Lỗi không tự tắt: người dùng cần thời gian đọc và chép "Mã tra cứu" để báo lỗi. Đóng bằng nút ×.
+    if (type !== 'error') setTimeout(() => this.remove(id), TOAST_DURATION_MS);
   }
 
   remove(id: number) {
