@@ -22,13 +22,33 @@ Có sẵn:
 
 ### Tạo dự án mới từ kit
 
+Mở PowerShell tại thư mục sẽ chứa dự án mới (thư mục cha, nơi bạn để các dự án), rồi chạy lần lượt:
+
 ```powershell
+# 1. Tại thư mục cha: tải kit vào một thư mục mới mang tên dự án
 git clone <địa chỉ repo kit> QuanLyKho
+
+# 2. Vào thư mục gốc của dự án mới. Mọi lệnh bên dưới đều chạy tại đây
 cd QuanLyKho
-Remove-Item .git -Recurse -Force; git init      # lịch sử riêng cho dự án mới
+
+# 3. Bỏ lịch sử git của kit, bắt đầu lịch sử riêng
+Remove-Item .git -Recurse -Force; git init
+
+# 4. Chỉ cần lần đầu trên máy, khi Windows báo "running scripts is disabled on this system"
+Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned
+
+# 5. Đổi tên kit thành tên dự án, rồi cài môi trường dev
 .\scripts\init-project.ps1 -Name QuanLyKho -DisplayName 'Quản lý kho'
 .\scripts\setup-dev.ps1
 ```
+
+- **Đứng đúng thư mục.** `.\scripts\...` là đường dẫn tính từ thư mục hiện tại, nên phải đứng ở thư mục gốc của dự án: thư mục có `API\`, `Client\`, `scripts\`.
+  Kiểm tra bằng `Test-Path .\scripts\init-project.ps1`, kết quả phải là `True`. Gõ thiếu `.\` thì PowerShell báo không tìm thấy lệnh, vì nó không tự tìm script trong thư mục hiện tại.
+- **`-Name` viết PascalCase:** bắt đầu bằng chữ hoa, chỉ gồm chữ không dấu và số, ví dụ `QuanLyKho` (không phải `quan-ly-kho`).
+  Script tự sinh các dạng `quan-ly-kho` và `quanlykho`. `-DisplayName` là tên hiển thị, viết có dấu được.
+- **Không muốn đổi execution policy của máy:** bỏ bước 4 và chạy từng script qua `powershell -ExecutionPolicy Bypass -File`,
+  ví dụ `powershell -ExecutionPolicy Bypass -File .\scripts\init-project.ps1 -Name QuanLyKho -DisplayName 'Quản lý kho'`.
+- **Kit tải về dạng file zip thay vì clone:** chạy thêm `Get-ChildItem -Recurse *.ps1 | Unblock-File` ở thư mục gốc, nếu không Windows vẫn chặn các script tải từ Internet.
 
 `init-project.ps1` đổi mọi dạng tên StarterKit (cookie, JWT issuer, tên site IIS, database, tiêu đề trang...) và sinh `UserSecretsId` mới,
 để các dự án trên cùng một máy không dùng chung secret. Mỗi dự án chạy trên cùng một máy IIS cần cổng HTTPS riêng: thêm `-HttpsPort 8444`.
@@ -36,7 +56,7 @@ Remove-Item .git -Recurse -Force; git init      # lịch sử riêng cho dự á
 ### Cài trên máy mới (dự án đã có)
 
 ```powershell
-.\scripts\setup-dev.ps1        # tham số: -SqlServer, -Database, -WithE2E (tải trình duyệt cho Playwright), -Force
+.\scripts\setup-dev.ps1        # chạy tại thư mục gốc của dự án. Tham số: -SqlServer, -Database, -WithE2E (tải trình duyệt cho Playwright), -Force
 ```
 
 Script kiểm tra .NET và Node, đặt user-secrets còn thiếu (connection string dùng Windows auth, khoá JWT và mật khẩu admin ngẫu nhiên),

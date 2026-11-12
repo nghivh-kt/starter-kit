@@ -91,7 +91,7 @@ export class CategoryListComponent {
     { key: 'name', header: 'Tên danh mục', sortable: true, className: 'font-medium' },
     { key: 'description', header: 'Diễn giải', className: 'text-ink-muted' },
     { key: 'isActive', header: 'Trạng thái', template: this.statusTemplate() },
-    { key: 'createdAt', header: 'Ngày tạo', type: 'date', format: 'dd/MM/yyyy', sortable: true },
+    { key: 'createdAt', header: 'Ngày tạo', type: 'date', format: 'dd/MM/yyyy HH:mm', sortable: true },
     ...(this.canEdit()
       ? [{ key: 'actions', header: 'Thao tác', hideHeader: true, template: this.actionTemplate(), width: '56px' }]
       : []),
